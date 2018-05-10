@@ -13,12 +13,12 @@ import (
 	fake "github.com/coreos/matchbox/matchbox/storage/testfakes"
 )
 
-func TestGroupCRUD(t *testing.T) {
+func TestFileStoreGroupCRUD(t *testing.T) {
 	dir, err := setup(&fake.FixedStore{})
 	assert.Nil(t, err)
 	defer os.RemoveAll(dir)
 
-	store := NewFileStore(&Config{Root: dir})
+	store := NewFileStore(&FileStoreConfig{Root: dir})
 	// assert that:
 	// - Group creation was successful
 	// - Group can be retrieved by id
@@ -38,7 +38,7 @@ func TestGroupCRUD(t *testing.T) {
 	}
 }
 
-func TestGroupGet(t *testing.T) {
+func TestFileStoreGroupGet(t *testing.T) {
 	dir, err := setup(&fake.FixedStore{
 		Groups: map[string]*storagepb.Group{
 			fake.Group.Id:           fake.Group,
@@ -48,7 +48,7 @@ func TestGroupGet(t *testing.T) {
 	assert.Nil(t, err)
 	defer os.RemoveAll(dir)
 
-	store := NewFileStore(&Config{Root: dir})
+	store := NewFileStore(&FileStoreConfig{Root: dir})
 	// assert that:
 	// - Groups written to the store can be retrieved
 	group, err := store.GroupGet(fake.Group.Id)
@@ -59,19 +59,19 @@ func TestGroupGet(t *testing.T) {
 	assert.Equal(t, fake.GroupNoMetadata, group)
 }
 
-func TestGroupGet_NoGroup(t *testing.T) {
+func TestFileStoreGroupGet_NoGroup(t *testing.T) {
 	dir, err := setup(&fake.FixedStore{})
 	assert.Nil(t, err)
 	defer os.RemoveAll(dir)
 
-	store := NewFileStore(&Config{Root: dir})
+	store := NewFileStore(&FileStoreConfig{Root: dir})
 	_, err = store.GroupGet("no-such-group")
 	if assert.Error(t, err) {
 		assert.IsType(t, &os.PathError{}, err)
 	}
 }
 
-func TestGroupList(t *testing.T) {
+func TestFileStoreGroupList(t *testing.T) {
 	dir, err := setup(&fake.FixedStore{
 		Groups: map[string]*storagepb.Group{
 			fake.Group.Id:           fake.Group,
@@ -81,7 +81,7 @@ func TestGroupList(t *testing.T) {
 	assert.Nil(t, err)
 	defer os.RemoveAll(dir)
 
-	store := NewFileStore(&Config{Root: dir})
+	store := NewFileStore(&FileStoreConfig{Root: dir})
 	groups, err := store.GroupList()
 	assert.Nil(t, err)
 	if assert.Equal(t, 2, len(groups)) {
@@ -91,12 +91,12 @@ func TestGroupList(t *testing.T) {
 	}
 }
 
-func TestProfileCRUD(t *testing.T) {
+func TestFileStoreProfileCRUD(t *testing.T) {
 	dir, err := setup(&fake.FixedStore{})
 	assert.Nil(t, err)
 	defer os.RemoveAll(dir)
 
-	store := NewFileStore(&Config{Root: dir})
+	store := NewFileStore(&FileStoreConfig{Root: dir})
 	// assert that:
 	// - Profile creation was successful
 	// - Profile can be retrieved by id
@@ -116,14 +116,14 @@ func TestProfileCRUD(t *testing.T) {
 	}
 }
 
-func TestProfileGet(t *testing.T) {
+func TestFileStoreProfileGet(t *testing.T) {
 	dir, err := setup(&fake.FixedStore{
 		Profiles: map[string]*storagepb.Profile{fake.Profile.Id: fake.Profile},
 	})
 	assert.Nil(t, err)
 	defer os.RemoveAll(dir)
 
-	store := NewFileStore(&Config{Root: dir})
+	store := NewFileStore(&FileStoreConfig{Root: dir})
 	profile, err := store.ProfileGet(fake.Profile.Id)
 	assert.Equal(t, fake.Profile, profile)
 	assert.Nil(t, err)
@@ -133,14 +133,14 @@ func TestProfileGet(t *testing.T) {
 	}
 }
 
-func TestProfileList(t *testing.T) {
+func TestFileStoreProfileList(t *testing.T) {
 	dir, err := setup(&fake.FixedStore{
 		Profiles: map[string]*storagepb.Profile{fake.Profile.Id: fake.Profile},
 	})
 	assert.Nil(t, err)
 	defer os.RemoveAll(dir)
 
-	store := NewFileStore(&Config{Root: dir})
+	store := NewFileStore(&FileStoreConfig{Root: dir})
 	profiles, err := store.ProfileList()
 	assert.Nil(t, err)
 	if assert.Equal(t, 1, len(profiles)) {
@@ -148,12 +148,12 @@ func TestProfileList(t *testing.T) {
 	}
 }
 
-func TestIgnitionCRUD(t *testing.T) {
+func TestFileStoreIgnitionCRUD(t *testing.T) {
 	dir, err := setup(&fake.FixedStore{})
 	assert.Nil(t, err)
 	defer os.RemoveAll(dir)
 
-	store := NewFileStore(&Config{Root: dir})
+	store := NewFileStore(&FileStoreConfig{Root: dir})
 	// assert that:
 	// - Ignition template creation was successful
 	// - Ignition template can be retrieved by name
@@ -173,7 +173,7 @@ func TestIgnitionCRUD(t *testing.T) {
 	}
 }
 
-func TestIgnitionGet(t *testing.T) {
+func TestFileStoreIgnitionGet(t *testing.T) {
 	contents := `{"ignitionVersion":1,"storage":{},"systemd":{"units":[{"name":"etcd2.service","enable":true}]},"networkd":{},"passwd":{}}`
 	dir, err := setup(&fake.FixedStore{
 		IgnitionConfigs: map[string]string{"myignition.json": contents},
@@ -181,18 +181,18 @@ func TestIgnitionGet(t *testing.T) {
 	assert.Nil(t, err)
 	defer os.RemoveAll(dir)
 
-	store := NewFileStore(&Config{Root: dir})
+	store := NewFileStore(&FileStoreConfig{Root: dir})
 	ign, err := store.IgnitionGet("myignition.json")
 	assert.Equal(t, contents, ign)
 	assert.Nil(t, err)
 }
 
-func TestGenericCRUD(t *testing.T) {
+func TestFileStoreGenericCRUD(t *testing.T) {
 	dir, err := setup(&fake.FixedStore{})
 	assert.Nil(t, err)
 	defer os.RemoveAll(dir)
 
-	store := NewFileStore(&Config{Root: dir})
+	store := NewFileStore(&FileStoreConfig{Root: dir})
 	// assert that:
 	// - Generic template creation was successful
 	// - Generic template can be retrieved by name
@@ -212,7 +212,7 @@ func TestGenericCRUD(t *testing.T) {
 	}
 }
 
-func TestGenericGet(t *testing.T) {
+func TestFileStoreGenericGet(t *testing.T) {
 	contents := `{"ignitionVersion":1,"storage":{},"systemd":{"units":[{"name":"etcd2.service","enable":true}]},"networkd":{},"passwd":{}}`
 	dir, err := setup(&fake.FixedStore{
 		GenericConfigs: map[string]string{"generic": contents},
@@ -220,13 +220,13 @@ func TestGenericGet(t *testing.T) {
 	assert.Nil(t, err)
 	defer os.RemoveAll(dir)
 
-	store := NewFileStore(&Config{Root: dir})
+	store := NewFileStore(&FileStoreConfig{Root: dir})
 	ign, err := store.GenericGet("generic")
 	assert.Equal(t, contents, ign)
 	assert.Nil(t, err)
 }
 
-func TestCloudGet(t *testing.T) {
+func TestFileStoreCloudGet(t *testing.T) {
 	contents := "#cloud-config"
 	dir, err := setup(&fake.FixedStore{
 		CloudConfigs: map[string]string{"cloudcfg.yaml": contents},
@@ -234,7 +234,7 @@ func TestCloudGet(t *testing.T) {
 	assert.Nil(t, err)
 	defer os.RemoveAll(dir)
 
-	store := NewFileStore(&Config{Root: dir})
+	store := NewFileStore(&FileStoreConfig{Root: dir})
 	cfg, err := store.CloudGet("cloudcfg.yaml")
 	assert.Nil(t, err)
 	assert.Equal(t, contents, cfg)

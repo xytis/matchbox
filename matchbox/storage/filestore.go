@@ -10,7 +10,7 @@ import (
 )
 
 // Config initializes a fileStore.
-type Config struct {
+type FileStoreConfig struct {
 	Root   string
 	Logger *logrus.Logger
 }
@@ -23,7 +23,7 @@ type fileStore struct {
 }
 
 // NewFileStore returns a new memory-backed Store.
-func NewFileStore(config *Config) Store {
+func NewFileStore(config *FileStoreConfig) Store {
 	return &fileStore{
 		root:   config.Root,
 		logger: config.Logger,

@@ -31,5 +31,6 @@ assets/
 bin/
 _output/
 tools/
+vendor/
 contrib/registry/data
 contrib/rpm/*.tar.gz
