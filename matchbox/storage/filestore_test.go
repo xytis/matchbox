@@ -148,46 +148,7 @@ func TestFileStoreProfileList(t *testing.T) {
 	}
 }
 
-func TestFileStoreIgnitionCRUD(t *testing.T) {
-	dir, err := setup(&fake.FixedStore{})
-	assert.Nil(t, err)
-	defer os.RemoveAll(dir)
-
-	store := NewFileStore(&FileStoreConfig{Root: dir})
-	// assert that:
-	// - Ignition template creation was successful
-	// - Ignition template can be retrieved by name
-	// - Ignition template can be deleted by name
-	err = store.IgnitionPut(fake.IgnitionYAMLName, []byte(fake.IgnitionYAML))
-	assert.Nil(t, err)
-
-	template, err := store.IgnitionGet(fake.IgnitionYAMLName)
-	assert.Nil(t, err)
-	assert.Equal(t, fake.IgnitionYAML, template)
-
-	err = store.IgnitionDelete(fake.IgnitionYAMLName)
-	assert.Nil(t, err)
-	_, err = store.IgnitionGet(fake.IgnitionYAMLName)
-	if assert.Error(t, err) {
-		assert.IsType(t, err, &os.PathError{})
-	}
-}
-
-func TestFileStoreIgnitionGet(t *testing.T) {
-	contents := `{"ignitionVersion":1,"storage":{},"systemd":{"units":[{"name":"etcd2.service","enable":true}]},"networkd":{},"passwd":{}}`
-	dir, err := setup(&fake.FixedStore{
-		IgnitionConfigs: map[string]string{"myignition.json": contents},
-	})
-	assert.Nil(t, err)
-	defer os.RemoveAll(dir)
-
-	store := NewFileStore(&FileStoreConfig{Root: dir})
-	ign, err := store.IgnitionGet("myignition.json")
-	assert.Equal(t, contents, ign)
-	assert.Nil(t, err)
-}
-
-func TestFileStoreGenericCRUD(t *testing.T) {
+func TestFileStoreTemplateCRUD(t *testing.T) {
 	dir, err := setup(&fake.FixedStore{})
 	assert.Nil(t, err)
 	defer os.RemoveAll(dir)
@@ -197,47 +158,22 @@ func TestFileStoreGenericCRUD(t *testing.T) {
 	// - Generic template creation was successful
 	// - Generic template can be retrieved by name
 	// - Generic template can be deleted by name
-	err = store.GenericPut(fake.GenericName, []byte(fake.Generic))
+	err = store.TemplatePut(fake.Template)
 	assert.Nil(t, err)
 
-	template, err := store.GenericGet(fake.GenericName)
+	template, err := store.TemplateGet(fake.Template.Id)
 	assert.Nil(t, err)
-	assert.Equal(t, fake.Generic, template)
+	assert.Equal(t, fake.Template, template)
+	assert.Equal(t, fake.Template.Id, template.Id)
+	assert.Equal(t, fake.Template.Name, template.Name)
+	assert.Equal(t, fake.Template.Contents, template.Contents)
 
-	err = store.GenericDelete(fake.GenericName)
+	err = store.TemplateDelete(fake.Template.Id)
 	assert.Nil(t, err)
-	_, err = store.GenericGet(fake.GenericName)
+	_, err = store.TemplateGet(fake.Template.Id)
 	if assert.Error(t, err) {
 		assert.IsType(t, err, &os.PathError{})
 	}
-}
-
-func TestFileStoreGenericGet(t *testing.T) {
-	contents := `{"ignitionVersion":1,"storage":{},"systemd":{"units":[{"name":"etcd2.service","enable":true}]},"networkd":{},"passwd":{}}`
-	dir, err := setup(&fake.FixedStore{
-		GenericConfigs: map[string]string{"generic": contents},
-	})
-	assert.Nil(t, err)
-	defer os.RemoveAll(dir)
-
-	store := NewFileStore(&FileStoreConfig{Root: dir})
-	ign, err := store.GenericGet("generic")
-	assert.Equal(t, contents, ign)
-	assert.Nil(t, err)
-}
-
-func TestFileStoreCloudGet(t *testing.T) {
-	contents := "#cloud-config"
-	dir, err := setup(&fake.FixedStore{
-		CloudConfigs: map[string]string{"cloudcfg.yaml": contents},
-	})
-	assert.Nil(t, err)
-	defer os.RemoveAll(dir)
-
-	store := NewFileStore(&FileStoreConfig{Root: dir})
-	cfg, err := store.CloudGet("cloudcfg.yaml")
-	assert.Nil(t, err)
-	assert.Equal(t, contents, cfg)
 }
 
 // setup creates a temp fileStore directory to mirror a given fixedStore
@@ -251,10 +187,8 @@ func setup(fixedStore *fake.FixedStore) (root string, err error) {
 	// directories
 	profileDir := filepath.Join(root, "profiles")
 	groupDir := filepath.Join(root, "groups")
-	ignitionDir := filepath.Join(root, "ignition")
-	genericDir := filepath.Join(root, "generic")
-	cloudDir := filepath.Join(root, "cloud")
-	if err := mkdirs(profileDir, groupDir, ignitionDir, genericDir, cloudDir); err != nil {
+	templateDir := filepath.Join(root, "templates")
+	if err := mkdirs(profileDir, groupDir, templateDir); err != nil {
 		return root, err
 	}
 	// files
@@ -284,23 +218,13 @@ func setup(fixedStore *fake.FixedStore) (root string, err error) {
 			return root, err
 		}
 	}
-	for name, content := range fixedStore.IgnitionConfigs {
-		ignitionFile := filepath.Join(ignitionDir, name)
-		err = ioutil.WriteFile(ignitionFile, []byte(content), defaultFileMode)
+	for _, template := range fixedStore.Templates {
+		templateFile := filepath.Join(templateDir, template.Id+".json")
+		data, err := json.MarshalIndent(template, "", "\t")
 		if err != nil {
 			return root, err
 		}
-	}
-	for name, content := range fixedStore.GenericConfigs {
-		genericFile := filepath.Join(genericDir, name)
-		err = ioutil.WriteFile(genericFile, []byte(content), defaultFileMode)
-		if err != nil {
-			return root, err
-		}
-	}
-	for name, content := range fixedStore.CloudConfigs {
-		cloudConfigFile := filepath.Join(cloudDir, name)
-		err = ioutil.WriteFile(cloudConfigFile, []byte(content), defaultFileMode)
+		err = ioutil.WriteFile(templateFile, []byte(data), defaultFileMode)
 		if err != nil {
 			return root, err
 		}

@@ -2,11 +2,6 @@ package storagepb
 
 import (
 	"encoding/json"
-	"errors"
-)
-
-var (
-	ErrIdRequired = errors.New("Id is required")
 )
 
 // ParseProfile parses bytes into a Profile.
@@ -27,24 +22,65 @@ func (p *Profile) AssertValid() error {
 }
 
 func (p *Profile) Copy() *Profile {
+	templates := make(map[string]string)
+	for k, v := range p.Template {
+		templates[k] = v
+	}
 	return &Profile{
-		Id:         p.Id,
-		Name:       p.Name,
-		IgnitionId: p.IgnitionId,
-		CloudId:    p.CloudId,
-		GenericId:  p.GenericId,
-		Boot:       p.Boot.Copy(),
+		Id:       p.Id,
+		Name:     p.Name,
+		Template: templates,
+		Metadata: p.Metadata,
 	}
 }
 
-func (b *NetBoot) Copy() *NetBoot {
-	initrd := make([]string, len(b.Initrd))
-	copy(initrd, b.Initrd)
-	args := make([]string, len(b.Args))
-	copy(args, b.Args)
-	return &NetBoot{
-		Kernel: b.Kernel,
-		Initrd: initrd,
-		Args:   args,
+// ToRichProfile converts a Profile into a RichProfile suitable for writing and
+// user manipulation.
+func (g *Profile) ToRichProfile() (*RichProfile, error) {
+	metadata := make(map[string]interface{})
+	if g.Metadata != nil {
+		err := json.Unmarshal(g.Metadata, &metadata)
+		if err != nil {
+			return nil, err
+		}
 	}
+	//TODO: Not a full copy?!
+	return &RichProfile{
+		Id:       g.Id,
+		Name:     g.Name,
+		Template: g.Template,
+		Metadata: metadata,
+	}, nil
+}
+
+// RichProfile is parsed representation of stored Profile
+type RichProfile struct {
+	// machine readable Id
+	Id string `json:"id,omitempty"`
+	// Human readable name
+	Name string `json:"name,omitempty"`
+	// Template bindings
+	Template map[string]string `json:"selector,omitempty"`
+	// Metadata
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
+}
+
+// ToProfile converts a user provided RichProfile into a Profile which can be
+// serialized as a protocol buffer.
+func (rg *RichProfile) ToProfile() (*Profile, error) {
+	var metadata []byte
+	if rg.Metadata != nil {
+		var err error
+		metadata, err = json.Marshal(rg.Metadata)
+		if err != nil {
+			return nil, err
+		}
+	}
+	//TODO: Not a full copy?!
+	return &Profile{
+		Id:       rg.Id,
+		Name:     rg.Name,
+		Template: rg.Template,
+		Metadata: metadata,
+	}, nil
 }

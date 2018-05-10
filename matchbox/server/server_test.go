@@ -13,9 +13,9 @@ import (
 )
 
 func TestSelectGroup(t *testing.T) {
-	store := &fake.FixedStore{
-		Groups: map[string]*storagepb.Group{fake.Group.Id: fake.Group},
-	}
+	store := fake.NewFixedStore()
+	store.Groups[fake.Group.Id] = fake.Group
+
 	cases := []struct {
 		store  storage.Store
 		labels map[string]string
@@ -38,13 +38,13 @@ func TestSelectGroup(t *testing.T) {
 }
 
 func TestSelectProfile(t *testing.T) {
-	store := &fake.FixedStore{
-		Groups:   map[string]*storagepb.Group{fake.Group.Id: fake.Group},
-		Profiles: map[string]*storagepb.Profile{fake.Group.Profile: fake.Profile},
-	}
-	missingProfileStore := &fake.FixedStore{
-		Groups: map[string]*storagepb.Group{fake.Group.Id: fake.Group},
-	}
+	store := fake.NewFixedStore()
+	store.Groups[fake.Group.Id] = fake.Group
+	store.Profiles[fake.Profile.Id] = fake.Profile
+
+	missingProfileStore := fake.NewFixedStore()
+	missingProfileStore.Groups[fake.Group.Id] = fake.Group
+
 	cases := []struct {
 		store   storage.Store
 		labels  map[string]string
@@ -95,9 +95,9 @@ func TestGroupCreate_Invalid(t *testing.T) {
 }
 
 func TestGroupList(t *testing.T) {
-	store := &fake.FixedStore{
-		Groups: map[string]*storagepb.Group{fake.Group.Id: fake.Group},
-	}
+	store := fake.NewFixedStore()
+	store.Groups[fake.Group.Id] = fake.Group
+
 	srv := NewServer(&Config{store})
 	groups, err := srv.GroupList(context.Background(), &pb.GroupListRequest{})
 	assert.Nil(t, err)
@@ -145,9 +145,9 @@ func TestProfileCreate_Invalid(t *testing.T) {
 }
 
 func TestProfileGet(t *testing.T) {
-	store := &fake.FixedStore{
-		Profiles: map[string]*storagepb.Profile{fake.Profile.Id: fake.Profile},
-	}
+	store := fake.NewFixedStore()
+	store.Profiles[fake.Profile.Id] = fake.Profile
+
 	cases := []struct {
 		id      string
 		profile *storagepb.Profile
@@ -164,10 +164,10 @@ func TestProfileGet(t *testing.T) {
 }
 
 func TestProfileList(t *testing.T) {
-	store := &fake.FixedStore{
-		Profiles: map[string]*storagepb.Profile{fake.Profile.Id: fake.Profile},
-	}
-	srv := NewServer(&Config{store})
+	store := fake.NewFixedStore()
+	store.Profiles[fake.Profile.Id] = fake.Profile
+
+	srv := NewServer(&Config{Store: store})
 	profiles, err := srv.ProfileList(context.Background(), &pb.ProfileListRequest{})
 	assert.Nil(t, err)
 	if assert.Equal(t, 1, len(profiles)) {
@@ -176,7 +176,7 @@ func TestProfileList(t *testing.T) {
 }
 
 func TestProfileList_Empty(t *testing.T) {
-	srv := NewServer(&Config{&fake.EmptyStore{}})
+	srv := NewServer(&Config{Store: &fake.EmptyStore{}})
 	profiles, err := srv.ProfileList(context.Background(), &pb.ProfileListRequest{})
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(profiles))
@@ -194,75 +194,37 @@ func TestProfiles_BrokenStore(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestIgnitionCRUD(t *testing.T) {
+func TestTemplatesCRUD(t *testing.T) {
 	srv := NewServer(&Config{Store: fake.NewFixedStore()})
-	req := &pb.IgnitionPutRequest{
-		Name:   fake.IgnitionYAMLName,
-		Config: []byte(fake.IgnitionYAML),
+	req := &pb.TemplatePutRequest{
+		Template: fake.Template,
 	}
-	_, err := srv.IgnitionPut(context.Background(), req)
-	// assert that:
-	// - Ignition template creation is successful
-	// - Ignition template can be retrieved by name
-	// - Ignition template can be deleted by name
-	assert.Nil(t, err)
-	template, err := srv.IgnitionGet(context.Background(), &pb.IgnitionGetRequest{Name: fake.IgnitionYAMLName})
-	assert.Equal(t, fake.IgnitionYAML, template)
-	assert.Nil(t, err)
-
-	err = srv.IgnitionDelete(context.Background(), &pb.IgnitionDeleteRequest{Name: fake.IgnitionYAMLName})
-	assert.Nil(t, err)
-	_, err = srv.IgnitionGet(context.Background(), &pb.IgnitionGetRequest{Name: fake.IgnitionYAMLName})
-	assert.Error(t, err)
-}
-
-func TestIgnition_BrokenStore(t *testing.T) {
-	srv := NewServer(&Config{&fake.BrokenStore{}})
-	req := &pb.IgnitionPutRequest{
-		Name:   fake.IgnitionYAMLName,
-		Config: []byte(fake.IgnitionYAML),
-	}
-	_, err := srv.IgnitionPut(context.Background(), req)
-	assert.Error(t, err)
-	_, err = srv.IgnitionGet(context.Background(), &pb.IgnitionGetRequest{Name: fake.IgnitionYAMLName})
-	assert.Error(t, err)
-	err = srv.IgnitionDelete(context.Background(), &pb.IgnitionDeleteRequest{Name: fake.IgnitionYAMLName})
-	assert.Error(t, err)
-}
-
-func TestGenericCRUD(t *testing.T) {
-	srv := NewServer(&Config{Store: fake.NewFixedStore()})
-	req := &pb.GenericPutRequest{
-		Name:   fake.GenericName,
-		Config: []byte(fake.Generic),
-	}
-	_, err := srv.GenericPut(context.Background(), req)
+	_, err := srv.TemplatePut(context.Background(), req)
 	// assert that:
 	// - Generic template creation is successful
 	// - Generic template can be retrieved by name
 	// - Generic template can be deleted by name
 	assert.Nil(t, err)
-	template, err := srv.GenericGet(context.Background(), &pb.GenericGetRequest{Name: fake.GenericName})
-	assert.Equal(t, fake.Generic, template)
+	template, err := srv.TemplateGet(context.Background(), &pb.TemplateGetRequest{Id: fake.Template.Id})
+	assert.Equal(t, fake.Template.Contents, template.Contents)
 	assert.Nil(t, err)
 
-	err = srv.GenericDelete(context.Background(), &pb.GenericDeleteRequest{Name: fake.GenericName})
+	err = srv.TemplateDelete(context.Background(), &pb.TemplateDeleteRequest{Id: fake.Template.Id})
 	assert.Nil(t, err)
-	_, err = srv.GenericGet(context.Background(), &pb.GenericGetRequest{Name: fake.GenericName})
+	_, err = srv.TemplateGet(context.Background(), &pb.TemplateGetRequest{Id: fake.Template.Id})
 	assert.Error(t, err)
 }
 
-func TestGeneric_BrokenStore(t *testing.T) {
+func TestTemplate_BrokenStore(t *testing.T) {
 	srv := NewServer(&Config{&fake.BrokenStore{}})
-	req := &pb.GenericPutRequest{
-		Name:   fake.GenericName,
-		Config: []byte(fake.Generic),
+	req := &pb.TemplatePutRequest{
+		Template: fake.Template,
 	}
-	_, err := srv.GenericPut(context.Background(), req)
+	_, err := srv.TemplatePut(context.Background(), req)
 	assert.Error(t, err)
-	_, err = srv.GenericGet(context.Background(), &pb.GenericGetRequest{Name: fake.GenericName})
+	_, err = srv.TemplateGet(context.Background(), &pb.TemplateGetRequest{Id: fake.Template.Id})
 	assert.Error(t, err)
-	err = srv.GenericDelete(context.Background(), &pb.GenericDeleteRequest{Name: fake.GenericName})
+	err = srv.TemplateDelete(context.Background(), &pb.TemplateDeleteRequest{Id: fake.Template.Id})
 
 	assert.Error(t, err)
 }

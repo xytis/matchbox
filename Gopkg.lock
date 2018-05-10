@@ -7,24 +7,14 @@
     ".",
     "hooks/test"
   ]
-  revision = "4b6ea7319e214d98c938f12692336f7ca9348d6b"
-  version = "v0.10.0"
+  revision = "ba1b36c82c5e05c4f912a88eab0dcd91a171688f"
+  version = "v0.11.5"
 
 [[projects]]
+  branch = "go15"
   name = "github.com/ajeddeloh/go-json"
   packages = ["."]
-  revision = "73d058cf8437a1989030afe571eeab9f90eebbbd"
-
-[[projects]]
-  branch = "v2"
-  name = "github.com/ajeddeloh/yaml"
-  packages = ["."]
-  revision = "6b94386aeefd8c4b8470aee72bfca084c2f91da9"
-
-[[projects]]
-  name = "github.com/alecthomas/units"
-  packages = ["."]
-  revision = "6b4e7dc5e3143b85ea77909c72caf89416fc2915"
+  revision = "6a2fe990e08303c82d966297ddb29a58678a4783"
 
 [[projects]]
   branch = "master"
@@ -37,25 +27,6 @@
   packages = ["."]
   revision = "583e8937c61f1af6513608ccc75c97b6abdf4ff9"
   version = "v1.3.0"
-
-[[projects]]
-  name = "github.com/coreos/container-linux-config-transpiler"
-  packages = [
-    "config",
-    "config/astyaml",
-    "config/platform",
-    "config/templating",
-    "config/types",
-    "config/types/util"
-  ]
-  revision = "be4cb16b0aaf0f6b4fdf63b8b2a081397276bf0f"
-  version = "v0.5.0"
-
-[[projects]]
-  name = "github.com/coreos/coreos-cloudinit"
-  packages = ["config"]
-  revision = "5be99bf577f2768193c7fb587ef5a8806c1503cf"
-  version = "v1.13.0"
 
 [[projects]]
   name = "github.com/coreos/etcd"
@@ -140,7 +111,8 @@
 [[projects]]
   name = "github.com/coreos/go-semver"
   packages = ["semver"]
-  revision = "5e3acbb5668c4c3deb4842615c4098eb61fb6b1e"
+  revision = "8ab6407b697782a06568d4b7f1db25550ec2e4c6"
+  version = "v0.2.0"
 
 [[projects]]
   name = "github.com/coreos/go-systemd"
@@ -148,8 +120,8 @@
     "journal",
     "unit"
   ]
-  revision = "43e4800a6165b4e02bb2a36673c54b230d6f7b26"
-  version = "v12"
+  revision = "40e2722dffead74698ca12a750f64ef313ddce05"
+  version = "v16"
 
 [[projects]]
   name = "github.com/coreos/ignition"
@@ -162,13 +134,15 @@
     "config/v2_0/types",
     "config/v2_1",
     "config/v2_1/types",
+    "config/v2_2",
+    "config/v2_2/types",
     "config/validate",
     "config/validate/astjson",
     "config/validate/astnode",
     "config/validate/report"
   ]
-  revision = "01c039a5ce59acd39e5741713e59abfcb74d0782"
-  version = "v0.19.0"
+  revision = "65f3f407178537b32d6075d042dea3a8fa9be501"
+  version = "v0.22.0"
 
 [[projects]]
   name = "github.com/coreos/pkg"
@@ -176,24 +150,26 @@
     "capnslog",
     "flagutil"
   ]
-  revision = "66fe44ad037ccb80329115cb4db0dbe8e9beb03a"
-
-[[projects]]
-  branch = "v1"
-  name = "github.com/coreos/yaml"
-  packages = ["."]
-  revision = "6b16a5714269b2f70720a45406b1babd947a17ef"
+  revision = "3ac0863d7acf3bc44daf49afef8919af12f704ef"
+  version = "v3"
 
 [[projects]]
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
-  revision = "5215b55f46b2b919f50a1df0eaa5886afe4e3b3d"
+  revision = "346938d642f2ec3594ed81d874461961cd0faa76"
+  version = "v1.1.0"
 
 [[projects]]
   name = "github.com/dgrijalva/jwt-go"
   packages = ["."]
   revision = "06ea1031745cb8b3dab3f6a236daf2b0aa468b7e"
   version = "v3.2.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/divideandconquer/go-merge"
+  packages = ["merge"]
+  revision = "bc6b3a394b4e042e2dcfb62cb7bcd043a59adbea"
 
 [[projects]]
   name = "github.com/ghodss/yaml"
@@ -225,15 +201,29 @@
     "ptypes",
     "ptypes/any",
     "ptypes/duration",
+    "ptypes/struct",
     "ptypes/timestamp"
   ]
-  revision = "2bba0603135d7d7f5cb73b2125beeda19c09f4ef"
+  revision = "b4deda0973fb4c70b50d226b1af49f3da59f5265"
+  version = "v1.1.0"
 
 [[projects]]
   branch = "master"
   name = "github.com/google/btree"
   packages = ["."]
   revision = "e89373fe6b4a7413d7acd6da1725b83ef713e6e4"
+
+[[projects]]
+  name = "github.com/gorilla/context"
+  packages = ["."]
+  revision = "08b5f424b9271eedf6f9f0ce86cb9396ed337a42"
+  version = "v1.1.1"
+
+[[projects]]
+  name = "github.com/gorilla/mux"
+  packages = ["."]
+  revision = "e3702bed27f0d39777b0b37b664b6280e8ef8fbf"
+  version = "v1.6.2"
 
 [[projects]]
   name = "github.com/gorilla/websocket"
@@ -256,6 +246,18 @@
   ]
   revision = "07f5e79768022f9a3265235f0db4ac8c3f675fec"
   version = "v1.3.1"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/hashicorp/errwrap"
+  packages = ["."]
+  revision = "7554cd9344cec97297fa6649b055a8c98c2a1e55"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/hashicorp/go-multierror"
+  packages = ["."]
+  revision = "b7773ae218740a7be65057fc60b366a49b538a44"
 
 [[projects]]
   name = "github.com/inconshreveable/mousetrap"
@@ -332,17 +334,20 @@
 [[projects]]
   name = "github.com/spf13/cobra"
   packages = ["."]
-  revision = "65a708cee0a4424f4e353d031ce440643e312f92"
+  revision = "a1f051bc3eba734da4772d60e2d677f47cf93ef4"
+  version = "v0.0.2"
 
 [[projects]]
   name = "github.com/spf13/pflag"
   packages = ["."]
-  revision = "7f60f83a2c81bc3c3c0d5297f61ddfa68da9d3b7"
+  revision = "583c0c0531f06d5278b7d917446061adc344b5cd"
+  version = "v1.0.1"
 
 [[projects]]
   name = "github.com/stretchr/testify"
   packages = ["assert"]
-  revision = "1f4a1643a57e798696635ea4c126e9127adb7d3c"
+  revision = "12b6f73e6084dad08a7c6e575284b177ecafbc71"
+  version = "v1.2.1"
 
 [[projects]]
   branch = "customizability"
@@ -369,11 +374,13 @@
   version = "0.0.1"
 
 [[projects]]
+  branch = "master"
   name = "go4.org"
   packages = ["errorutil"]
-  revision = "03efcb870d84809319ea509714dd6d19a1498483"
+  revision = "9599cf28b011184741f249bd9f9330756b506cbc"
 
 [[projects]]
+  branch = "master"
   name = "golang.org/x/crypto"
   packages = [
     "bcrypt",
@@ -386,23 +393,48 @@
     "openpgp/packet",
     "openpgp/s2k"
   ]
-  revision = "7e9105388ebff089b3f99f0ef676ea55a6da3a7e"
+  revision = "2d027ae1dddd4694d54f7a8b6cbe78dca8720226"
 
 [[projects]]
+  branch = "master"
   name = "golang.org/x/net"
   packages = [
     "context",
+    "http/httpguts",
     "http2",
     "http2/hpack",
+    "idna",
     "internal/timeseries",
     "trace"
   ]
-  revision = "fb93926129b8ec0056f2f458b1f519654814edf0"
+  revision = "f73e4c9ed3b7ebdd5f699a16a880c2b1994e50dd"
 
 [[projects]]
+  branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "8f0908ab3b2457e2e15403d3697c9ef5cb4b57a9"
+  revision = "7dfd1290c7917b7ba22824b9d24954ab3002fe24"
+
+[[projects]]
+  name = "golang.org/x/text"
+  packages = [
+    "collate",
+    "collate/build",
+    "internal/colltab",
+    "internal/gen",
+    "internal/tag",
+    "internal/triegen",
+    "internal/ucd",
+    "language",
+    "secure/bidirule",
+    "transform",
+    "unicode/bidi",
+    "unicode/cldr",
+    "unicode/norm",
+    "unicode/rangetable"
+  ]
+  revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
+  version = "v0.3.0"
 
 [[projects]]
   branch = "master"
@@ -458,6 +490,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "57c13f611ac6c227261f52b68832f9272c2f2d02bacd0b1305a1079a6071ec98"
+  inputs-digest = "162d91f1810eec8fe47e6c7b04b3f3d2836df594fd5ddac1e08ac08f352ae794"
   solver-name = "gps-cdcl"
   solver-version = 1

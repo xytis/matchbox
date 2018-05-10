@@ -1,13 +1,7 @@
 package testfakes
 
 import (
-	"errors"
-
 	"github.com/coreos/matchbox/matchbox/storage/storagepb"
-)
-
-var (
-	errIntentional = errors.New("store: error for testing purposes")
 )
 
 // BrokenStore returns errors for testing purposes.
@@ -53,37 +47,17 @@ func (s *BrokenStore) ProfileList() (profiles []*storagepb.Profile, err error) {
 	return profiles, errIntentional
 }
 
-// IgnitionPut returns an error.
-func (s *BrokenStore) IgnitionPut(name string, config []byte) error {
+// TemplatePut returns an error.
+func (s *BrokenStore) TemplatePut(*storagepb.Template) error {
 	return errIntentional
 }
 
-// IgnitionGet returns an error.
-func (s *BrokenStore) IgnitionGet(name string) (string, error) {
-	return "", errIntentional
+// TemplateGet returns an error.
+func (s *BrokenStore) TemplateGet(string) (*storagepb.Template, error) {
+	return nil, errIntentional
 }
 
-// IgnitionDelete returns an error.
-func (s *BrokenStore) IgnitionDelete(name string) error {
+// TemplateDelete returns an error.
+func (s *BrokenStore) TemplateDelete(string) error {
 	return errIntentional
-}
-
-// GenericPut returns an error.
-func (s *BrokenStore) GenericPut(name string, config []byte) error {
-	return errIntentional
-}
-
-// GenericGet returns an error.
-func (s *BrokenStore) GenericGet(name string) (string, error) {
-	return "", errIntentional
-}
-
-// GenericDelete returns an error.
-func (s *BrokenStore) GenericDelete(name string) error {
-	return errIntentional
-}
-
-// CloudGet returns an error.
-func (s *BrokenStore) CloudGet(name string) (string, error) {
-	return "", errIntentional
 }

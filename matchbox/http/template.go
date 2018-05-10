@@ -9,13 +9,19 @@ import (
 	pb "github.com/coreos/matchbox/matchbox/server/serverpb"
 )
 
-// grubHandler returns a handler which renders a GRUB2 config for the
-// requester.
-func (s *Server) grubHandler() http.Handler {
+// templateHandler returns a handler that responds with the generic config
+// matching the request.
+func (s *Server) templateHandler() http.Handler {
 	fn := func(w http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()
 		core := s.core
 		labels, _ := labelsFromContext(ctx)
+
+		selector, present := labels["template_id"]
+		if !present {
+			http.Error(w, "Malformed URL, template_id query param must be set", 400)
+			return
+		}
 
 		group, err := groupFromContext(ctx)
 		if err != nil {
@@ -35,6 +41,18 @@ func (s *Server) grubHandler() http.Handler {
 			return
 		}
 
+		templateID, present := profile.Template[selector]
+		if !present {
+			s.logger.WithFields(logrus.Fields{
+				"labels":           labels,
+				"group":            group.Id,
+				"profile":          profile.Id,
+				"profile_template": selector,
+			}).Infof("Profile does not contain requested template binding")
+			http.NotFound(w, req)
+			return
+		}
+
 		metadata, err := mergeMetadata(ctx)
 		if err != nil {
 			s.logger.WithFields(logrus.Fields{
@@ -45,10 +63,6 @@ func (s *Server) grubHandler() http.Handler {
 			}).Warnf("Issue with metadata")
 		}
 
-		templateID, present := profile.Template["grub"]
-		if !present {
-			templateID = "default-grub"
-		}
 		tmpl, err := core.TemplateGet(ctx, &pb.TemplateGetRequest{Id: templateID})
 		if err != nil {
 			s.logger.WithFields(logrus.Fields{

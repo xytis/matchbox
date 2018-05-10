@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"encoding/json"
+	"time"
 
 	"github.com/Sirupsen/logrus"
 	etcd "github.com/coreos/etcd/clientv3"
@@ -10,31 +11,43 @@ import (
 	"github.com/coreos/matchbox/matchbox/storage/storagepb"
 )
 
+var (
+	etcdStoreNamespace = "coreos.matchbox.v1/"
+)
+
+// EtcdStoreConfig initializes a etcdStore.
 type EtcdStoreConfig struct {
 	Config etcd.Config
 	Prefix string
 	Logger *logrus.Logger
 }
 
+// etcdStore implements ths Store interface.
 type etcdStore struct {
-	client etcd.Client
+	client *etcd.Client
 	logger *logrus.Logger
 }
 
+// NewEtcdStore returns a new etcd-backed Store.
 func NewEtcdStore(config *EtcdStoreConfig) (Store, error) {
+	if config.Config.DialTimeout == 0 {
+		config.Config.DialTimeout = 5 * time.Second
+	}
 	client, err := etcd.New(config.Config)
 	if err != nil {
 		return nil, err
 	}
-	client.KV = namespace.NewKV(client.KV, "coreos.matchbox.v1/"+config.Prefix)
+	client.KV = namespace.NewKV(client.KV, etcdStoreNamespace+config.Prefix)
+	client.Watcher = namespace.NewWatcher(client.Watcher, etcdStoreNamespace+config.Prefix)
+	client.Lease = namespace.NewLease(client.Lease, etcdStoreNamespace+config.Prefix)
 	return &etcdStore{
 		client: client,
 		logger: config.Logger,
 	}, nil
 }
 
+// GroupPut writes the given Group.
 func (s *etcdStore) GroupPut(group *storagepb.Group) error {
-	kapi := etcd.NewKV(s.client)
 	richGroup, err := group.ToRichGroup()
 	if err != nil {
 		return err
@@ -44,66 +57,74 @@ func (s *etcdStore) GroupPut(group *storagepb.Group) error {
 		return err
 	}
 
-	_, err = kapi.Set(context.Background(), "/groups/"+group.Id, string(data), nil)
+	_, err = s.client.Put(context.Background(), "/groups/"+group.Id, string(data))
 	return err
 }
 
+// GroupGet returns a machine Group by id.
 func (s *etcdStore) GroupGet(id string) (*storagepb.Group, error) {
-	kapi := etcd.NewKV(s.client)
-	resp, err := kapi.Get(context.Background(), "/groups/"+id, nil)
+	resp, err := s.client.Get(context.Background(), "/groups/"+id)
 	if err != nil {
 		return nil, err
 	}
-	group, err := storagepb.ParseGroup([]byte(resp.Node.Value))
+	if resp.Count == 0 {
+		return nil, ErrGroupNotFound
+	}
+	kv := resp.Kvs[0]
+	group, err := storagepb.ParseGroup([]byte(kv.Value))
 	if err != nil {
 		return nil, err
 	}
 	return group, err
 }
 
+// GroupDelete deletes a machine Group by id.
 func (s *etcdStore) GroupDelete(id string) error {
-	kapi := etcd.NewKV(s.client)
-	_, err := kapi.Delete(context.Background(), "/groups/"+id, nil)
+	_, err := s.client.Delete(context.Background(), "/groups/"+id)
 	return err
 }
 
+// GroupList lists all machine Groups.
 func (s *etcdStore) GroupList() ([]*storagepb.Group, error) {
-	kapi := etcd.NewKV(s.client)
-	resp, err := kapi.Get(context.Background(), "/groups/", nil)
+	resp, err := s.client.Get(context.Background(), "/groups/", etcd.WithPrefix())
 	if err != nil {
 		return nil, err
 	}
 
-	groups := make([]*storagepb.Group, 0, len(resp.Node.Nodes))
-	for _, n := range resp.Node.Nodes {
-		group, err := storagepb.ParseGroup([]byte(n.Value))
+	groups := make([]*storagepb.Group, 0, resp.Count)
+	for _, kv := range resp.Kvs {
+		group, err := storagepb.ParseGroup(kv.Value)
 		if err == nil {
 			groups = append(groups, group)
 		} else if s.logger != nil {
-			s.logger.Infof("Group %q: %v", n.Key, err)
+			s.logger.Infof("Group %q: %v", kv.Key, err)
 		}
 	}
 	return groups, nil
 }
 
+// ProfilePut writes the given Profile.
 func (s *etcdStore) ProfilePut(profile *storagepb.Profile) error {
-	kapi := etcd.NewKV(s.client)
 	data, err := json.MarshalIndent(profile, "", "\t")
 	if err != nil {
 		return err
 	}
-	_, err = kapi.Set(context.Background(), "/profiles/"+profile.Id, string(data), nil)
+	_, err = s.client.Put(context.Background(), "/profiles/"+profile.Id, string(data))
 	return err
 }
 
+// ProfileGet gets a profile by id.
 func (s *etcdStore) ProfileGet(id string) (*storagepb.Profile, error) {
-	kapi := etcd.NewKV(s.client)
-	resp, err := kapi.Get(context.Background(), "/profiles/"+id, nil)
+	resp, err := s.client.Get(context.Background(), "/profiles/"+id)
 	if err != nil {
 		return nil, err
 	}
+	if resp.Count == 0 {
+		return nil, ErrProfileNotFound
+	}
+	kv := resp.Kvs[0]
 	profile := new(storagepb.Profile)
-	err = json.Unmarshal([]byte(resp.Node.Value), profile)
+	err = json.Unmarshal([]byte(kv.Value), profile)
 	if err != nil {
 		return nil, err
 	}
@@ -113,70 +134,64 @@ func (s *etcdStore) ProfileGet(id string) (*storagepb.Profile, error) {
 	return profile, err
 }
 
+// ProfileDelete deletes a profile by id.
 func (s *etcdStore) ProfileDelete(id string) error {
-	kapi := etcd.NewKV(s.client)
-	_, err := kapi.Delete(context.Background(), "/profiles/"+id, nil)
+	_, err := s.client.Delete(context.Background(), "/profiles/"+id)
 	return err
 }
 
+// ProfileList lists all profiles.
 func (s *etcdStore) ProfileList() ([]*storagepb.Profile, error) {
-	kapi := etcd.NewKV(s.client)
-	resp, err := kapi.Get(context.Background(), "/profiles/", nil)
+	resp, err := s.client.Get(context.Background(), "/profiles/", etcd.WithPrefix())
 	if err != nil {
 		return nil, err
 	}
-
-	profiles := make([]*storagepb.Profile, 0, len(resp.Node.Nodes))
-	for _, n := range resp.Node.Nodes {
+	profiles := make([]*storagepb.Profile, 0, resp.Count)
+	for _, kv := range resp.Kvs {
 		profile := new(storagepb.Profile)
-		err = json.Unmarshal([]byte(n.Value), profile)
+		err = json.Unmarshal([]byte(kv.Value), profile)
 		if err == nil {
 			profiles = append(profiles, profile)
 		} else if s.logger != nil {
-			s.logger.Infof("Profile %q: %v", n.Key, err)
+			s.logger.Infof("Profile %q: %v", kv.Key, err)
 		}
 	}
 	return profiles, nil
 }
 
-func (s *etcdStore) IgnitionPut(name string, config []byte) error {
-	kapi := etcd.NewKV(s.client)
-	_, err := kapi.Set(context.Background(), "/ignition/"+name, string(config), nil)
+// TemplatePut creates or updates a template.
+func (s *etcdStore) TemplatePut(template *storagepb.Template) error {
+	data, err := json.MarshalIndent(template, "", "\t")
+	if err != nil {
+		return err
+	}
+	_, err = s.client.Put(context.Background(), "/template/"+template.Id, string(data))
 	return err
 }
 
-func (s *etcdStore) IgnitionGet(name string) (string, error) {
-	kapi := etcd.NewKV(s.client)
-	resp, err := kapi.Get(context.Background(), "/ignition/"+name, nil)
-	return resp.Node.Value, err
+// TemplateGet gets a template by name.
+func (s *etcdStore) TemplateGet(id string) (*storagepb.Template, error) {
+	resp, err := s.client.Get(context.Background(), "/template/"+id)
+	if err != nil {
+		return nil, err
+	}
+	if resp.Count == 0 {
+		return nil, ErrTemplateNotFound
+	}
+	kv := resp.Kvs[0]
+	template := new(storagepb.Template)
+	err = json.Unmarshal([]byte(kv.Value), template)
+	if err != nil {
+		return nil, err
+	}
+	if err := template.AssertValid(); err != nil {
+		return nil, err
+	}
+	return template, err
 }
 
-func (s *etcdStore) IgnitionDelete(name string) error {
-	kapi := etcd.NewKV(s.client)
-	_, err := kapi.Delete(context.Background(), "/ignition/"+name, nil)
+// TemplateDelete deletes a template by name.
+func (s *etcdStore) TemplateDelete(id string) error {
+	_, err := s.client.Delete(context.Background(), "/template/"+id)
 	return err
-}
-
-func (s *etcdStore) GenericPut(name string, config []byte) error {
-	kapi := etcd.NewKV(s.client)
-	_, err := kapi.Set(context.Background(), "/generic/"+name, string(config), nil)
-	return err
-}
-
-func (s *etcdStore) GenericGet(name string) (string, error) {
-	kapi := etcd.NewKV(s.client)
-	resp, err := kapi.Get(context.Background(), "/generic/"+name, nil)
-	return resp.Node.Value, err
-}
-
-func (s *etcdStore) GenericDelete(name string) error {
-	kapi := etcd.NewKV(s.client)
-	_, err := kapi.Delete(context.Background(), "/generic/"+name, nil)
-	return err
-}
-
-func (s *etcdStore) CloudGet(name string) (string, error) {
-	kapi := etcd.NewKV(s.client)
-	resp, err := kapi.Get(context.Background(), "/generic/"+name, nil)
-	return resp.Node.Value, err
 }

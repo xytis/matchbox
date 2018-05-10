@@ -25,22 +25,13 @@ service Profiles {
   rpc ProfileList(serverpb.ProfileListRequest) returns (serverpb.ProfileListResponse) {};
 }
 
-service Ignition {
-  // Create or update a Container Linux Config template.
-  rpc IgnitionPut(serverpb.IgnitionPutRequest) returns (serverpb.IgnitionPutResponse) {};
-  // Get a Container Linux Config template by name.
-  rpc IgnitionGet(serverpb.IgnitionGetRequest) returns (serverpb.IgnitionGetResponse) {};
-  // Delete a Container Linux Config template by name.
-  rpc IgnitionDelete(serverpb.IgnitionDeleteRequest) returns (serverpb.IgnitionDeleteResponse) {};
-}
-
-service Generic {
-  // Create or update a Generic template.
-  rpc GenericPut(serverpb.GenericPutRequest) returns (serverpb.GenericPutResponse) {};
-  // Get a Generic template by name.
-  rpc GenericGet(serverpb.GenericGetRequest) returns (serverpb.GenericGetResponse) {};
-  // Delete a Generic template by name.
-  rpc GenericDelete(serverpb.GenericDeleteRequest) returns (serverpb.GenericDeleteResponse) {};
+service Templates {
+  // Create or update a template.
+  rpc TemplatePut(serverpb.TemplatePutRequest) returns (serverpb.TemplatePutResponse) {};
+  // Get a template by name.
+  rpc TemplateGet(serverpb.TemplateGetRequest) returns (serverpb.TemplateGetResponse) {};
+  // Delete a template by name.
+  rpc TemplateDelete(serverpb.TemplateDeleteRequest) returns (serverpb.TemplateDeleteResponse) {};
 }
 
 service Select {

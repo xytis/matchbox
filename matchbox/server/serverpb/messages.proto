@@ -69,42 +69,21 @@ message ProfileListResponse {
   repeated storagepb.Profile profiles = 1;
 }
 
-// Ignition
-
-message IgnitionPutRequest {
-  string name = 1;
-  bytes config = 2;
-}
-message IgnitionPutResponse {}
-
-message IgnitionGetRequest {
-  string name = 1;
-}
-message IgnitionGetResponse {
-  bytes config = 1;
-}
-
-message IgnitionDeleteRequest {
-  string name = 1;
-}
-message IgnitionDeleteResponse {}
-
 // Generic
 
-message GenericPutRequest {
-  string name = 1;
-  bytes config = 2;
+message TemplatePutRequest {
+  storagepb.Template template = 1;
 }
-message GenericPutResponse {}
+message TemplatePutResponse {}
 
-message GenericGetRequest {
-  string name = 1;
+message TemplateGetRequest {
+  string id = 1;
 }
-message GenericGetResponse {
-  bytes config = 1;
+message TemplateGetResponse {
+  storagepb.Template template = 1;
 }
 
-message GenericDeleteRequest {
-  string name = 1;
+message TemplateDeleteRequest {
+  string id = 1;
 }
-message GenericDeleteResponse {}
+message TemplateDeleteResponse {}

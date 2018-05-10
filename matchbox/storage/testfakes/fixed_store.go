@@ -1,28 +1,22 @@
 package testfakes
 
 import (
-	"fmt"
-
 	"github.com/coreos/matchbox/matchbox/storage/storagepb"
 )
 
 // FixedStore is used for testing purposes.
 type FixedStore struct {
-	Groups          map[string]*storagepb.Group
-	Profiles        map[string]*storagepb.Profile
-	IgnitionConfigs map[string]string
-	CloudConfigs    map[string]string
-	GenericConfigs  map[string]string
+	Groups    map[string]*storagepb.Group
+	Profiles  map[string]*storagepb.Profile
+	Templates map[string]*storagepb.Template
 }
 
 // NewFixedStore returns a new FixedStore.
 func NewFixedStore() *FixedStore {
 	return &FixedStore{
-		Groups:          make(map[string]*storagepb.Group),
-		Profiles:        make(map[string]*storagepb.Profile),
-		IgnitionConfigs: make(map[string]string),
-		CloudConfigs:    make(map[string]string),
-		GenericConfigs:  make(map[string]string),
+		Groups:    make(map[string]*storagepb.Group),
+		Profiles:  make(map[string]*storagepb.Profile),
+		Templates: make(map[string]*storagepb.Template),
 	}
 }
 
@@ -37,7 +31,7 @@ func (s *FixedStore) GroupGet(id string) (*storagepb.Group, error) {
 	if group, present := s.Groups[id]; present {
 		return group, nil
 	}
-	return nil, fmt.Errorf("Group not found")
+	return nil, errGroupNotFound
 }
 
 // GroupDelete deletes the Group from the Groups map with the given id.
@@ -68,7 +62,7 @@ func (s *FixedStore) ProfileGet(id string) (*storagepb.Profile, error) {
 	if profile, present := s.Profiles[id]; present {
 		return profile, nil
 	}
-	return nil, fmt.Errorf("Profile not found")
+	return nil, errProfileNotFound
 }
 
 // ProfileDelete deletes the Profile from the Profiles map with the given id.
@@ -88,50 +82,22 @@ func (s *FixedStore) ProfileList() ([]*storagepb.Profile, error) {
 	return profiles, nil
 }
 
-// IgnitionPut create or updates an Ignition template.
-func (s *FixedStore) IgnitionPut(name string, config []byte) error {
-	s.IgnitionConfigs[name] = string(config)
+// TemplatePut creates or updates a template.
+func (s *FixedStore) TemplatePut(template *storagepb.Template) error {
+	s.Templates[template.Id] = template
 	return nil
 }
 
-// IgnitionGet returns an Ignition template by name.
-func (s *FixedStore) IgnitionGet(name string) (string, error) {
-	if config, present := s.IgnitionConfigs[name]; present {
-		return config, nil
+// TemplateGet gets a template by name.
+func (s *FixedStore) TemplateGet(id string) (*storagepb.Template, error) {
+	if template, present := s.Templates[id]; present {
+		return template, nil
 	}
-	return "", fmt.Errorf("no Ignition template %s", name)
+	return nil, errTemplateNotFound
 }
 
-// IgnitionDelete deletes an Ignition template by name.
-func (s *FixedStore) IgnitionDelete(name string) error {
-	delete(s.IgnitionConfigs, name)
+// TemplateDelete deletes a template by name.
+func (s *FixedStore) TemplateDelete(id string) error {
+	delete(s.Templates, id)
 	return nil
-}
-
-// GenericPut create or updates an Generic template.
-func (s *FixedStore) GenericPut(name string, config []byte) error {
-	s.GenericConfigs[name] = string(config)
-	return nil
-}
-
-// GenericGet returns an Generic template by name.
-func (s *FixedStore) GenericGet(name string) (string, error) {
-	if config, present := s.GenericConfigs[name]; present {
-		return config, nil
-	}
-	return "", fmt.Errorf("no Generic template %s", name)
-}
-
-// GenericDelete deletes an Generic template by name.
-func (s *FixedStore) GenericDelete(name string) error {
-	delete(s.GenericConfigs, name)
-	return nil
-}
-
-// CloudGet returns a Cloud-config template by name.
-func (s *FixedStore) CloudGet(name string) (string, error) {
-	if config, present := s.CloudConfigs[name]; present {
-		return config, nil
-	}
-	return "", fmt.Errorf("no Cloud-Config template %s", name)
 }

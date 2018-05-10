@@ -8,8 +8,9 @@ import (
 
 // Storage errors
 var (
-	ErrGroupNotFound   = errors.New("storage: No Group found")
-	ErrProfileNotFound = errors.New("storage: No Profile found")
+	ErrGroupNotFound    = errors.New("storage: No Group found")
+	ErrProfileNotFound  = errors.New("storage: No Profile found")
+	ErrTemplateNotFound = errors.New("storage: No Template found")
 )
 
 // A Store stores machine Groups, Profiles, and Configs.
@@ -32,20 +33,10 @@ type Store interface {
 	// ProfileList lists all profiles.
 	ProfileList() ([]*storagepb.Profile, error)
 
-	// IgnitionPut creates or updates an Ignition template.
-	IgnitionPut(name string, config []byte) error
-	// IgnitionGet gets an Ignition template by name.
-	IgnitionGet(name string) (string, error)
-	// IgnitionDelete deletes an Ignition template by name.
-	IgnitionDelete(name string) error
-
-	// GenericPut creates or updates a Generic template.
-	GenericPut(name string, config []byte) error
-	// GenericGet gets a Generic template by name.
-	GenericGet(name string) (string, error)
-	// GenericDelete deletes a Generic template by name.
-	GenericDelete(name string) error
-
-	// CloudGet gets a Cloud-Config template by name.
-	CloudGet(name string) (string, error)
+	// TemplatePut creates or updates a template.
+	TemplatePut(template *storagepb.Template) error
+	// TemplateGet gets a template by name.
+	TemplateGet(id string) (*storagepb.Template, error)
+	// TemplateDelete deletes a template by name.
+	TemplateDelete(id string) error
 }

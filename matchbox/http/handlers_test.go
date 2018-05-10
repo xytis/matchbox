@@ -10,14 +10,13 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/coreos/matchbox/matchbox/server"
-	"github.com/coreos/matchbox/matchbox/storage/storagepb"
 	fake "github.com/coreos/matchbox/matchbox/storage/testfakes"
 )
 
 func TestSelectGroup(t *testing.T) {
-	store := &fake.FixedStore{
-		Groups: map[string]*storagepb.Group{fake.Group.Id: fake.Group},
-	}
+	store := fake.NewFixedStore()
+	store.Groups[fake.Group.Id] = fake.Group
+
 	logger, _ := logtest.NewNullLogger()
 	srv := NewServer(&Config{Logger: logger})
 	c := server.NewServer(&server.Config{Store: store})
@@ -40,10 +39,10 @@ func TestSelectGroup(t *testing.T) {
 }
 
 func TestSelectProfile(t *testing.T) {
-	store := &fake.FixedStore{
-		Groups:   map[string]*storagepb.Group{fake.Group.Id: fake.Group},
-		Profiles: map[string]*storagepb.Profile{fake.Group.Profile: fake.Profile},
-	}
+	store := fake.NewFixedStore()
+	store.Groups[fake.Group.Id] = fake.Group
+	store.Profiles[fake.Profile.Id] = fake.Profile
+
 	logger, _ := logtest.NewNullLogger()
 	srv := NewServer(&Config{Logger: logger})
 	c := server.NewServer(&server.Config{Store: store})

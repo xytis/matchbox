@@ -4,22 +4,15 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
-	"text/template"
 
 	"github.com/Sirupsen/logrus"
+
+	pb "github.com/coreos/matchbox/matchbox/server/serverpb"
 )
 
 const ipxeBootstrap = `#!ipxe
 chain ipxe?uuid=${uuid}&mac=${mac:hexhyp}&domain=${domain}&hostname=${hostname}&serial=${serial}
 `
-
-var ipxeTemplate = template.Must(template.New("iPXE config").Parse(`#!ipxe
-kernel {{.Kernel}}{{range $arg := .Args}} {{$arg}}{{end}}
-{{- range $element := .Initrd }}
-initrd {{$element}}
-{{- end}}
-boot
-`))
 
 // ipxeInspect returns a handler that responds with the iPXE script to gather
 // client machine data and chainload to the ipxeHandler.
@@ -35,11 +28,48 @@ func ipxeInspect() http.Handler {
 func (s *Server) ipxeHandler() http.Handler {
 	fn := func(w http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()
+		core := s.core
+		labels, _ := labelsFromContext(ctx)
+
+		group, err := groupFromContext(ctx)
+		if err != nil {
+			s.logger.WithFields(logrus.Fields{
+				"labels": labels,
+			}).Infof("No matching group")
+			http.NotFound(w, req)
+			return
+		}
+
 		profile, err := profileFromContext(ctx)
 		if err != nil {
 			s.logger.WithFields(logrus.Fields{
-				"labels": labelsFromRequest(nil, req),
+				"labels": labels,
 			}).Infof("No matching profile")
+			http.NotFound(w, req)
+			return
+		}
+
+		metadata, err := mergeMetadata(ctx)
+		if err != nil {
+			s.logger.WithFields(logrus.Fields{
+				"labels":  labels,
+				"group":   group.Id,
+				"profile": profile.Id,
+				"error":   err,
+			}).Warnf("Issue with metadata")
+		}
+
+		templateID, present := profile.Template["ipxe"]
+		if !present {
+			templateID = "default-ipxe"
+		}
+		tmpl, err := core.TemplateGet(ctx, &pb.TemplateGetRequest{Id: templateID})
+		if err != nil {
+			s.logger.WithFields(logrus.Fields{
+				"labels":  labels,
+				"group":   group.Id,
+				"profile": profile.Id,
+			}).Infof("No template named: %s", templateID)
 			http.NotFound(w, req)
 			return
 		}
@@ -47,12 +77,12 @@ func (s *Server) ipxeHandler() http.Handler {
 		// match was successful
 		s.logger.WithFields(logrus.Fields{
 			"labels":  labelsFromRequest(nil, req),
+			"group":   group.Id,
 			"profile": profile.Id,
 		}).Debug("Matched an iPXE config")
 
 		var buf bytes.Buffer
-		err = ipxeTemplate.Execute(&buf, profile.Boot)
-		if err != nil {
+		if err = Render(&buf, tmpl.Id, string(tmpl.Contents), metadata); err != nil {
 			s.logger.Errorf("error rendering template: %v", err)
 			http.NotFound(w, req)
 			return

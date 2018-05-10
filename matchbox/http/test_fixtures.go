@@ -8,13 +8,13 @@ var (
 	validMACStr = "52:da:00:89:d8:10"
 
 	testProfileIgnitionYAML = &storagepb.Profile{
-		Id:         "g1h2i3j4",
-		IgnitionId: "ignition.yaml",
+		Id:       "g1h2i3j4",
+		Template: map[string]string{"ignition": "fake-template"},
 	}
 
 	testProfileGeneric = &storagepb.Profile{
-		Id:         "g1h2i3j4",
-		IgnitionId: "generic.tmpl",
+		Id:       "g1h2i3j4",
+		Template: map[string]string{"ignition": "fake-template"},
 	}
 
 	testGroupWithMAC = &storagepb.Group{

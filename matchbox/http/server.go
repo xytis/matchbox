@@ -2,8 +2,10 @@ package http
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/gorilla/mux"
 
 	"github.com/coreos/matchbox/matchbox/server"
 	"github.com/coreos/matchbox/matchbox/sign"
@@ -42,59 +44,50 @@ func NewServer(config *Config) *Server {
 
 // HTTPHandler returns a HTTP handler for the server.
 func (s *Server) HTTPHandler() http.Handler {
-	mux := http.NewServeMux()
+	r := mux.NewRouter()
 
-	chain := func(next http.Handler) http.Handler {
+	// Logging
+	r.Use(func(next http.Handler) http.Handler {
 		return s.logRequest(next)
-	}
+	})
+	// Context parser
+	r.Use(func(next http.Handler) http.Handler {
+		return s.selectContext(s.core, next)
+	})
+	// Signature Handlers
+	r.Use(func(next http.Handler) http.Handler {
+		fn := func(w http.ResponseWriter, req *http.Request) {
+			if s.signer != nil && strings.HasSuffix(req.URL.Path, ".sig") {
+				h := stripSuffix(".sig", sign.SignatureHandler(s.signer, next))
+				h.ServeHTTP(w, req)
+			} else if s.armoredSigner != nil && strings.HasSuffix(req.URL.Path, ".asc") {
+				h := stripSuffix(".asc", sign.SignatureHandler(s.armoredSigner, next))
+				h.ServeHTTP(w, req)
+			} else {
+				next.ServeHTTP(w, req)
+			}
+		}
+		return http.HandlerFunc(fn)
+	})
 	// matchbox version
-	mux.Handle("/", s.logRequest(homeHandler()))
+	r.Handle("/", homeHandler())
 	// Boot via GRUB
-	mux.Handle("/grub", chain(s.selectProfile(s.core, s.grubHandler())))
+	r.Handle("/grub", s.grubHandler())
 	// Boot via iPXE
-	mux.Handle("/boot.ipxe", chain(ipxeInspect()))
-	mux.Handle("/boot.ipxe.0", chain(ipxeInspect()))
-	mux.Handle("/ipxe", chain(s.selectProfile(s.core, s.ipxeHandler())))
+	r.Handle("/boot.ipxe", ipxeInspect())
+	r.Handle("/boot.ipxe.0", ipxeInspect())
+	r.Handle("/ipxe", s.ipxeHandler())
 	// Ignition Config
-	mux.Handle("/ignition", chain(s.selectGroup(s.core, s.ignitionHandler(s.core))))
-	// Cloud-Config
-	mux.Handle("/cloud", chain(s.selectGroup(s.core, s.cloudHandler(s.core))))
-	// Generic template
-	mux.Handle("/generic", chain(s.selectGroup(s.core, s.genericHandler(s.core))))
+	r.Handle("/ignition", s.ignitionHandler())
+	// Template
+	r.Handle("/template", s.templateHandler())
 	// Metadata
-	mux.Handle("/metadata", chain(s.selectGroup(s.core, s.metadataHandler())))
-
-	// Signatures
-	if s.signer != nil {
-		signerChain := func(next http.Handler) http.Handler {
-			return s.logRequest(sign.SignatureHandler(s.signer, next))
-		}
-		mux.Handle("/grub.sig", signerChain(s.selectProfile(s.core, s.grubHandler())))
-		mux.Handle("/boot.ipxe.sig", signerChain(ipxeInspect()))
-		mux.Handle("/boot.ipxe.0.sig", signerChain(ipxeInspect()))
-		mux.Handle("/ipxe.sig", signerChain(s.selectProfile(s.core, s.ipxeHandler())))
-		mux.Handle("/ignition.sig", signerChain(s.selectGroup(s.core, s.ignitionHandler(s.core))))
-		mux.Handle("/cloud.sig", signerChain(s.selectGroup(s.core, s.cloudHandler(s.core))))
-		mux.Handle("/generic.sig", signerChain(s.selectGroup(s.core, s.genericHandler(s.core))))
-		mux.Handle("/metadata.sig", signerChain(s.selectGroup(s.core, s.metadataHandler())))
-	}
-	if s.armoredSigner != nil {
-		signerChain := func(next http.Handler) http.Handler {
-			return s.logRequest(sign.SignatureHandler(s.armoredSigner, next))
-		}
-		mux.Handle("/grub.asc", signerChain(s.selectProfile(s.core, s.grubHandler())))
-		mux.Handle("/boot.ipxe.asc", signerChain(ipxeInspect()))
-		mux.Handle("/boot.ipxe.0.asc", signerChain(ipxeInspect()))
-		mux.Handle("/ipxe.asc", signerChain(s.selectProfile(s.core, s.ipxeHandler())))
-		mux.Handle("/ignition.asc", signerChain(s.selectGroup(s.core, s.ignitionHandler(s.core))))
-		mux.Handle("/cloud.asc", signerChain(s.selectGroup(s.core, s.cloudHandler(s.core))))
-		mux.Handle("/generic.asc", signerChain(s.selectGroup(s.core, s.genericHandler(s.core))))
-		mux.Handle("/metadata.asc", signerChain(s.selectGroup(s.core, s.metadataHandler())))
-	}
+	r.Handle("/metadata", s.metadataHandler())
 
 	// kernel, initrd, and TLS assets
 	if s.assetsPath != "" {
-		mux.Handle("/assets/", s.logRequest(http.StripPrefix("/assets/", http.FileServer(http.Dir(s.assetsPath)))))
+		r.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir(s.assetsPath))))
 	}
-	return mux
+
+	return r
 }

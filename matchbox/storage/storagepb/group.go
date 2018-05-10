@@ -2,14 +2,9 @@ package storagepb
 
 import (
 	"encoding/json"
-	"errors"
 	"net"
 	"sort"
 	"strings"
-)
-
-var (
-	ErrProfileRequired = errors.New("Group requires a Profile")
 )
 
 // ParseGroup parses bytes into a Group.
@@ -105,6 +100,7 @@ func (g *Group) ToRichGroup() (*RichGroup, error) {
 			return nil, err
 		}
 	}
+	//TODO: Not a full copy?!
 	return &RichGroup{
 		Id:       g.Id,
 		Name:     g.Name,
@@ -160,6 +156,7 @@ func (rg *RichGroup) ToGroup() (*Group, error) {
 			return nil, err
 		}
 	}
+	//TODO: Not a full copy?!
 	return &Group{
 		Id:       rg.Id,
 		Name:     rg.Name,

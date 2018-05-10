@@ -9,6 +9,7 @@ import (
 	logtest "github.com/Sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/coreos/matchbox/matchbox/server"
 	"github.com/coreos/matchbox/matchbox/storage/storagepb"
 	fake "github.com/coreos/matchbox/matchbox/storage/testfakes"
 )
@@ -24,9 +25,10 @@ func TestIPXEInspect(t *testing.T) {
 
 func TestIPXEHandler(t *testing.T) {
 	logger, _ := logtest.NewNullLogger()
-	srv := NewServer(&Config{Logger: logger})
+	core := server.NewServer(&server.Config{Store: fake.NewFixedStore()})
+	srv := NewServer(&Config{Logger: logger, Core: core})
 	h := srv.ipxeHandler()
-	ctx := withProfile(context.Background(), fake.Profile)
+	ctx := createFakeContext(context.Background(), map[string]string{}, fake.Profile, fake.Group)
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/", nil)
 	h.ServeHTTP(w, req.WithContext(ctx))
@@ -44,7 +46,8 @@ boot
 
 func TestIPXEHandler_MissingCtxProfile(t *testing.T) {
 	logger, _ := logtest.NewNullLogger()
-	srv := NewServer(&Config{Logger: logger})
+	core := server.NewServer(&server.Config{Store: fake.NewFixedStore()})
+	srv := NewServer(&Config{Logger: logger, Core: core})
 	h := srv.ipxeHandler()
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/", nil)
@@ -54,10 +57,11 @@ func TestIPXEHandler_MissingCtxProfile(t *testing.T) {
 
 func TestIPXEHandler_RenderTemplateError(t *testing.T) {
 	logger, _ := logtest.NewNullLogger()
-	srv := NewServer(&Config{Logger: logger})
+	core := server.NewServer(&server.Config{Store: fake.NewFixedStore()})
+	srv := NewServer(&Config{Logger: logger, Core: core})
 	h := srv.ipxeHandler()
-	// a Profile with nil NetBoot forces a template.Execute error
-	ctx := withProfile(context.Background(), &storagepb.Profile{Boot: nil})
+	//Profile with missing metadata produces template render error
+	ctx := createFakeContext(context.Background(), map[string]string{}, &storagepb.Profile{Id: fake.Profile.Id}, fake.Group)
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/", nil)
 	h.ServeHTTP(w, req.WithContext(ctx))
@@ -66,9 +70,10 @@ func TestIPXEHandler_RenderTemplateError(t *testing.T) {
 
 func TestIPXEHandler_WriteError(t *testing.T) {
 	logger, _ := logtest.NewNullLogger()
-	srv := NewServer(&Config{Logger: logger})
+	core := server.NewServer(&server.Config{Store: fake.NewFixedStore()})
+	srv := NewServer(&Config{Logger: logger, Core: core})
 	h := srv.ipxeHandler()
-	ctx := withProfile(context.Background(), fake.Profile)
+	ctx := createFakeContext(context.Background(), map[string]string{}, fake.Profile, fake.Group)
 	w := NewUnwriteableResponseWriter()
 	req, _ := http.NewRequest("GET", "/", nil)
 	h.ServeHTTP(w, req.WithContext(ctx))

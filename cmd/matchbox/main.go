@@ -17,6 +17,8 @@ import (
 	"github.com/coreos/matchbox/matchbox/storage"
 	"github.com/coreos/matchbox/matchbox/tlsutil"
 	"github.com/coreos/matchbox/matchbox/version"
+
+	etcd "github.com/coreos/etcd/clientv3"
 )
 
 var (
@@ -26,20 +28,32 @@ var (
 
 func main() {
 	flags := struct {
-		address     string
-		rpcAddress  string
-		dataPath    string
-		assetsPath  string
-		logLevel    string
-		certFile    string
-		keyFile     string
-		caFile      string
-		keyRingPath string
-		version     bool
-		help        bool
+		address       string
+		rpcAddress    string
+		dataStore     string
+		etcdEndpoints flagutil.StringSliceFlag
+		etcdUsername  string
+		etcdPassword  string
+		etcdPrefix    string
+		dataPath      string
+		assetsPath    string
+		logLevel      string
+		certFile      string
+		keyFile       string
+		caFile        string
+		keyRingPath   string
+		version       bool
+		help          bool
 	}{}
 	flag.StringVar(&flags.address, "address", "127.0.0.1:8080", "HTTP listen address")
 	flag.StringVar(&flags.rpcAddress, "rpc-address", "", "RPC listen address")
+
+	flag.StringVar(&flags.dataStore, "data-store", "etcd", "Type of datastore")
+	flag.Var(&flags.etcdEndpoints, "etcd-endpoints", "List of etcd endpoints")
+	flag.StringVar(&flags.etcdUsername, "etcd-username", "", "Etcd authentication user")
+	flag.StringVar(&flags.etcdPassword, "etcd-password", "", "Etcd authentication password")
+	flag.StringVar(&flags.etcdPrefix, "etcd-prefix", "", "Etcd key prefix")
+
 	flag.StringVar(&flags.dataPath, "data-path", "/var/lib/matchbox", "Path to data directory")
 	flag.StringVar(&flags.assetsPath, "assets-path", "/var/lib/matchbox/assets", "Path to static assets")
 
@@ -78,8 +92,13 @@ func main() {
 	}
 
 	// validate arguments
-	if finfo, err := os.Stat(flags.dataPath); err != nil || !finfo.IsDir() {
-		log.Fatal("A valid -data-path is required")
+	if flags.dataStore != "fs" && flags.dataStore != "etcd" {
+		log.Fatal("-data-store can be only etcd or fs")
+	}
+	if flags.dataStore == "fs" {
+		if finfo, err := os.Stat(flags.dataPath); err != nil || !finfo.IsDir() {
+			log.Fatal("A valid -data-path is required")
+		}
 	}
 	if flags.assetsPath != "" {
 		if finfo, err := os.Stat(flags.assetsPath); err != nil || !finfo.IsDir() {
@@ -117,10 +136,29 @@ func main() {
 	}
 
 	// storage
-	store := storage.NewFileStore(&storage.FileStoreConfig{
-		Root:   flags.dataPath,
-		Logger: log,
-	})
+	var store storage.Store
+	switch flags.dataStore {
+	case "fs":
+		store = storage.NewFileStore(&storage.FileStoreConfig{
+			Root:   flags.dataPath,
+			Logger: log,
+		})
+		break
+	case "etcd":
+		store, err = storage.NewEtcdStore(&storage.EtcdStoreConfig{
+			Config: etcd.Config{
+				Endpoints: flags.etcdEndpoints,
+				Username:  flags.etcdUsername,
+				Password:  flags.etcdPassword,
+			},
+			Prefix: flags.etcdPrefix,
+			Logger: log,
+		})
+		if err != nil {
+			log.Fatal("Connection to etcd failed")
+		}
+		break
+	}
 
 	// core logic
 	server := server.NewServer(&server.Config{

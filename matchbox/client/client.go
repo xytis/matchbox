@@ -30,12 +30,11 @@ type Config struct {
 
 // Client provides a matchbox client RPC session.
 type Client struct {
-	Groups   rpcpb.GroupsClient
-	Profiles rpcpb.ProfilesClient
-	Ignition rpcpb.IgnitionClient
-	Generic  rpcpb.GenericClient
-	Select   rpcpb.SelectClient
-	conn     *grpc.ClientConn
+	Groups    rpcpb.GroupsClient
+	Profiles  rpcpb.ProfilesClient
+	Templates rpcpb.TemplatesClient
+	Select    rpcpb.SelectClient
+	conn      *grpc.ClientConn
 }
 
 // New creates a new Client from the given Config.
@@ -62,12 +61,11 @@ func newClient(config *Config) (*Client, error) {
 		return nil, err
 	}
 	client := &Client{
-		conn:     conn,
-		Groups:   rpcpb.NewGroupsClient(conn),
-		Profiles: rpcpb.NewProfilesClient(conn),
-		Ignition: rpcpb.NewIgnitionClient(conn),
-		Generic:  rpcpb.NewGenericClient(conn),
-		Select:   rpcpb.NewSelectClient(conn),
+		conn:      conn,
+		Groups:    rpcpb.NewGroupsClient(conn),
+		Profiles:  rpcpb.NewProfilesClient(conn),
+		Templates: rpcpb.NewTemplatesClient(conn),
+		Select:    rpcpb.NewSelectClient(conn),
 	}
 	return client, nil
 }

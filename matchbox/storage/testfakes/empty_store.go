@@ -16,7 +16,7 @@ func (s *EmptyStore) GroupPut(group *storagepb.Group) error {
 
 // GroupGet returns a group not found error.
 func (s *EmptyStore) GroupGet(id string) (*storagepb.Group, error) {
-	return nil, fmt.Errorf("Group not found")
+	return nil, errGroupNotFound
 }
 
 // GroupDelete returns a nil error (successful deletion).
@@ -36,7 +36,7 @@ func (s *EmptyStore) ProfilePut(profile *storagepb.Profile) error {
 
 // ProfileGet returns a profile not found error.
 func (s *EmptyStore) ProfileGet(id string) (*storagepb.Profile, error) {
-	return nil, fmt.Errorf("Profile not found")
+	return nil, errProfileNotFound
 }
 
 // ProfileDelete returns a nil error (successful deletion).
@@ -49,37 +49,17 @@ func (s *EmptyStore) ProfileList() (profiles []*storagepb.Profile, err error) {
 	return profiles, nil
 }
 
-// IgnitionPut returns an error writing any Ignition template.
-func (s *EmptyStore) IgnitionPut(name string, config []byte) error {
-	return fmt.Errorf("emptyStore does not accept Ignition templates")
+// TemplatePut creates or updates a template.
+func (s *EmptyStore) TemplatePut(*storagepb.Template) error {
+	return fmt.Errorf("emptyStore does not accept templates")
 }
 
-// IgnitionGet get returns an Ignition template not found error.
-func (s *EmptyStore) IgnitionGet(name string) (string, error) {
-	return "", fmt.Errorf("no Ignition template %s", name)
+// TemplateGet gets a template by name.
+func (s *EmptyStore) TemplateGet(id string) (*storagepb.Template, error) {
+	return nil, errTemplateNotFound
 }
 
-// IgnitionDelete returns a nil error (successful deletion).
-func (s *EmptyStore) IgnitionDelete(name string) error {
+// TemplateDelete deletes a template by name.
+func (s *EmptyStore) TemplateDelete(id string) error {
 	return nil
-}
-
-// GenericPut returns an error writing any Generic template.
-func (s *EmptyStore) GenericPut(name string, config []byte) error {
-	return fmt.Errorf("emptyStore does not accept Generic templates")
-}
-
-// GenericGet get returns an Generic template not found error.
-func (s *EmptyStore) GenericGet(name string) (string, error) {
-	return "", fmt.Errorf("no Generic template %s", name)
-}
-
-// GenericDelete returns a nil error (successful deletion).
-func (s *EmptyStore) GenericDelete(name string) error {
-	return nil
-}
-
-// CloudGet returns a Cloud-config template not found error.
-func (s *EmptyStore) CloudGet(name string) (string, error) {
-	return "", fmt.Errorf("no Cloud-Config template %s", name)
 }

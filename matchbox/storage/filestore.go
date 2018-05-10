@@ -9,7 +9,7 @@ import (
 	"github.com/coreos/matchbox/matchbox/storage/storagepb"
 )
 
-// Config initializes a fileStore.
+// FileStoreConfig initializes a fileStore.
 type FileStoreConfig struct {
 	Root   string
 	Logger *logrus.Logger
@@ -130,40 +130,33 @@ func (s *fileStore) ProfileList() ([]*storagepb.Profile, error) {
 	return profiles, nil
 }
 
-// IgnitionPut creates or updates an Ignition template.
-func (s *fileStore) IgnitionPut(name string, config []byte) error {
-	return Dir(s.root).writeFile(filepath.Join("ignition", name), config)
+// TemplatePut creates or updates a template.
+func (s *fileStore) TemplatePut(template *storagepb.Template) error {
+	data, err := json.MarshalIndent(template, "", "\t")
+	if err != nil {
+		return err
+	}
+	return Dir(s.root).writeFile(filepath.Join("templates", template.Id+".json"), data)
 }
 
-// IgnitionGet gets an Ignition template by name.
-func (s *fileStore) IgnitionGet(name string) (string, error) {
-	data, err := Dir(s.root).readFile(filepath.Join("ignition", name))
-	return string(data), err
+// TemplateGet gets a template by name.
+func (s *fileStore) TemplateGet(id string) (*storagepb.Template, error) {
+	data, err := Dir(s.root).readFile(filepath.Join("templates", id+".json"))
+	if err != nil {
+		return nil, err
+	}
+	template := new(storagepb.Template)
+	err = json.Unmarshal(data, template)
+	if err != nil {
+		return nil, err
+	}
+	if err := template.AssertValid(); err != nil {
+		return nil, err
+	}
+	return template, err
 }
 
-// IgnitionDelete deletes an Ignition template by name.
-func (s *fileStore) IgnitionDelete(name string) error {
-	return Dir(s.root).deleteFile(filepath.Join("ignition", name))
-}
-
-// GenericPut creates or updates an Generic template.
-func (s *fileStore) GenericPut(name string, config []byte) error {
-	return Dir(s.root).writeFile(filepath.Join("generic", name), config)
-}
-
-// GenericGet gets an Generic template by name.
-func (s *fileStore) GenericGet(name string) (string, error) {
-	data, err := Dir(s.root).readFile(filepath.Join("generic", name))
-	return string(data), err
-}
-
-// GenericDelete deletes an Generic template by name.
-func (s *fileStore) GenericDelete(name string) error {
-	return Dir(s.root).deleteFile(filepath.Join("generic", name))
-}
-
-// CloudGet gets a Cloud-Config template by name.
-func (s *fileStore) CloudGet(name string) (string, error) {
-	data, err := Dir(s.root).readFile(filepath.Join("cloud", name))
-	return string(data), err
+// TemplateDelete deletes a template by name.
+func (s *fileStore) TemplateDelete(id string) error {
+	return Dir(s.root).deleteFile(filepath.Join("templates", id+".json"))
 }

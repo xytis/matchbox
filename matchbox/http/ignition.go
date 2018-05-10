@@ -6,10 +6,9 @@ import (
 	"strings"
 
 	"github.com/Sirupsen/logrus"
-	ct "github.com/coreos/container-linux-config-transpiler/config"
+	//ct "github.com/coreos/container-linux-config-transpiler/config"
 	ignition "github.com/coreos/ignition/config"
 
-	"github.com/coreos/matchbox/matchbox/server"
 	pb "github.com/coreos/matchbox/matchbox/server/serverpb"
 )
 
@@ -18,94 +17,110 @@ import (
 // as raw Ignition (for .ign/.ignition) or rendered from a Container Linux
 // Config (YAML) and converted to Ignition. Ignition configs are served as HTTP
 // JSON responses.
-func (s *Server) ignitionHandler(core server.Server) http.Handler {
+func (s *Server) ignitionHandler() http.Handler {
 	fn := func(w http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()
+		core := s.core
+		labels, _ := labelsFromContext(ctx)
+
 		group, err := groupFromContext(ctx)
 		if err != nil {
 			s.logger.WithFields(logrus.Fields{
-				"labels": labelsFromRequest(nil, req),
+				"labels": labels,
 			}).Infof("No matching group")
 			http.NotFound(w, req)
 			return
 		}
 
-		profile, err := core.ProfileGet(ctx, &pb.ProfileGetRequest{Id: group.Profile})
+		profile, err := profileFromContext(ctx)
 		if err != nil {
 			s.logger.WithFields(logrus.Fields{
-				"labels":     labelsFromRequest(nil, req),
-				"group":      group.Id,
-				"group_name": group.Name,
-			}).Infof("No profile named: %s", group.Profile)
+				"labels": labels,
+			}).Infof("No matching profile")
 			http.NotFound(w, req)
 			return
 		}
 
-		contents, err := core.IgnitionGet(ctx, &pb.IgnitionGetRequest{Name: profile.IgnitionId})
+		metadata, err := mergeMetadata(ctx)
 		if err != nil {
 			s.logger.WithFields(logrus.Fields{
-				"labels":     labelsFromRequest(nil, req),
-				"group":      group.Id,
-				"group_name": group.Name,
-				"profile":    group.Profile,
-			}).Infof("No Ignition or Container Linux Config template named: %s", profile.IgnitionId)
-			http.NotFound(w, req)
-			return
+				"labels":  labels,
+				"group":   group.Id,
+				"profile": profile.Id,
+				"error":   err,
+			}).Warnf("Issue with metadata")
 		}
 
-		// match was successful
-		s.logger.WithFields(logrus.Fields{
-			"labels":  labelsFromRequest(nil, req),
-			"group":   group.Id,
-			"profile": profile.Id,
-		}).Debug("Matched an Ignition or Container Linux Config template")
-
-		// Skip rendering if raw Ignition JSON is provided
-		if isIgnition(profile.IgnitionId) {
-			_, report, err := ignition.Parse([]byte(contents))
-			if err != nil {
-				s.logger.Warningf("warning parsing Ignition JSON: %s", report.String())
-			}
-			s.writeJSON(w, []byte(contents))
-			return
+		templateID, present := profile.Template["ignition"]
+		if !present {
+			templateID = "default-ignition"
 		}
-
-		// Container Linux Config template
-
-		// collect data for rendering
-		data, err := collectVariables(req, group)
+		tmpl, err := core.TemplateGet(ctx, &pb.TemplateGetRequest{Id: templateID})
 		if err != nil {
-			s.logger.Errorf("error collecting variables: %v", err)
+			s.logger.WithFields(logrus.Fields{
+				"labels":  labels,
+				"group":   group.Id,
+				"profile": profile.Id,
+			}).Infof("No template named: %s", templateID)
 			http.NotFound(w, req)
 			return
 		}
 
-		// render the template for an Ignition config with data
 		var buf bytes.Buffer
-		err = s.renderTemplate(&buf, data, contents)
+		if err = Render(&buf, tmpl.Id, string(tmpl.Contents), metadata); err != nil {
+			s.logger.Errorf("error rendering template: %v", err)
+			http.NotFound(w, req)
+			return
+		}
+		_, report, err := ignition.Parse(buf.Bytes())
 		if err != nil {
-			http.NotFound(w, req)
-			return
+			s.logger.Warningf("warning parsing Ignition JSON: %s", report.String())
+		}
+		w.Header().Set(contentType, jsonContentType)
+		if _, err := buf.WriteTo(w); err != nil {
+			s.logger.Errorf("error writing to response: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
 		}
 
-		// Parse bytes into a Container Linux Config
-		config, ast, report := ct.Parse(buf.Bytes())
-		if report.IsFatal() {
-			s.logger.Errorf("error parsing Container Linux config: %s", report.String())
-			http.NotFound(w, req)
-			return
-		}
-
-		// Convert Container Linux Config into an Ignition Config
-		ign, report := ct.ConvertAs2_0(config, "", ast)
-		if report.IsFatal() {
-			s.logger.Errorf("error converting Container Linux config: %s", report.String())
-			http.NotFound(w, req)
-			return
-		}
-
-		s.renderJSON(w, ign)
 		return
+		/*
+			// Container Linux Config template
+
+			// collect data for rendering
+			data, err := collectVariables(req, group)
+			if err != nil {
+				s.logger.Errorf("error collecting variables: %v", err)
+				http.NotFound(w, req)
+				return
+			}
+
+			// render the template for an Ignition config with data
+			var buf bytes.Buffer
+			err = s.renderTemplate(&buf, data, contents)
+			if err != nil {
+				http.NotFound(w, req)
+				return
+			}
+
+			// Parse bytes into a Container Linux Config
+			config, ast, report := ct.Parse(buf.Bytes())
+			if report.IsFatal() {
+				s.logger.Errorf("error parsing Container Linux config: %s", report.String())
+				http.NotFound(w, req)
+				return
+			}
+
+			// Convert Container Linux Config into an Ignition Config
+			ign, report := ct.Convert(config, "", ast)
+			if report.IsFatal() {
+				s.logger.Errorf("error converting Container Linux config: %s", report.String())
+				http.NotFound(w, req)
+				return
+			}
+
+			s.renderJSON(w, ign)
+			return
+		*/
 	}
 	return http.HandlerFunc(fn)
 }

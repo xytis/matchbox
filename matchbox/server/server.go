@@ -42,22 +42,12 @@ type Server interface {
 	// List all Profiles.
 	ProfileList(context.Context, *pb.ProfileListRequest) ([]*storagepb.Profile, error)
 
-	// Create or update an Ignition template.
-	IgnitionPut(context.Context, *pb.IgnitionPutRequest) (string, error)
-	// Get an Ignition template by name.
-	IgnitionGet(context.Context, *pb.IgnitionGetRequest) (string, error)
-	// Delete an Ignition template by name.
-	IgnitionDelete(context.Context, *pb.IgnitionDeleteRequest) error
-
-	// Create or update an Generic template.
-	GenericPut(context.Context, *pb.GenericPutRequest) (string, error)
-	// Get an Generic template by name.
-	GenericGet(context.Context, *pb.GenericGetRequest) (string, error)
-	// Delete an Generic template by name.
-	GenericDelete(context.Context, *pb.GenericDeleteRequest) error
-
-	// Get a Cloud-Config template by name.
-	CloudGet(ctx context.Context, name string) (string, error)
+	// Create or update a template.
+	TemplatePut(context.Context, *pb.TemplatePutRequest) (*storagepb.Template, error)
+	// Get a template by name.
+	TemplateGet(context.Context, *pb.TemplateGetRequest) (*storagepb.Template, error)
+	// Delete a template by name.
+	TemplateDelete(context.Context, *pb.TemplateDeleteRequest) error
 }
 
 // Config configures a server implementation.
@@ -72,9 +62,40 @@ type server struct {
 
 // NewServer returns a new Server.
 func NewServer(config *Config) Server {
+	storage.AssertDefaultTemplates(config.Store)
 	return &server{
 		store: config.Store,
 	}
+}
+
+// SelectGroup selects the Group whose selector matches the given labels.
+// Groups are evaluated in sorted order from most selectors to least, using
+// alphabetical order as a deterministic tie-breaker.
+func (s *server) SelectGroup(ctx context.Context, req *pb.SelectGroupRequest) (*storagepb.Group, error) {
+	groups, err := s.store.GroupList()
+	if err != nil {
+		return nil, err
+	}
+	sort.Sort(sort.Reverse(storagepb.ByReqs(groups)))
+	for _, group := range groups {
+		if group.Matches(req.Labels) {
+			return group, nil
+		}
+	}
+	return nil, ErrNoMatchingGroup
+}
+
+func (s *server) SelectProfile(ctx context.Context, req *pb.SelectProfileRequest) (*storagepb.Profile, error) {
+	group, err := s.SelectGroup(ctx, &pb.SelectGroupRequest{Labels: req.Labels})
+	if err == nil {
+		// lookup the Profile by id
+		profile, err := s.ProfileGet(ctx, &pb.ProfileGetRequest{Id: group.Profile})
+		if err == nil {
+			return profile, nil
+		}
+		return nil, ErrNoMatchingProfile
+	}
+	return nil, ErrNoMatchingGroup
 }
 
 func (s *server) GroupPut(ctx context.Context, req *pb.GroupPutRequest) (*storagepb.Group, error) {
@@ -142,75 +163,21 @@ func (s *server) ProfileList(ctx context.Context, req *pb.ProfileListRequest) ([
 	return profiles, nil
 }
 
-// SelectGroup selects the Group whose selector matches the given labels.
-// Groups are evaluated in sorted order from most selectors to least, using
-// alphabetical order as a deterministic tie-breaker.
-func (s *server) SelectGroup(ctx context.Context, req *pb.SelectGroupRequest) (*storagepb.Group, error) {
-	groups, err := s.store.GroupList()
+// GenericPut creates or updates a template by name.
+func (s *server) TemplatePut(ctx context.Context, req *pb.TemplatePutRequest) (*storagepb.Template, error) {
+	err := s.store.TemplatePut(req.Template)
 	if err != nil {
 		return nil, err
 	}
-	sort.Sort(sort.Reverse(storagepb.ByReqs(groups)))
-	for _, group := range groups {
-		if group.Matches(req.Labels) {
-			return group, nil
-		}
-	}
-	return nil, ErrNoMatchingGroup
+	return req.Template, err
 }
 
-func (s *server) SelectProfile(ctx context.Context, req *pb.SelectProfileRequest) (*storagepb.Profile, error) {
-	group, err := s.SelectGroup(ctx, &pb.SelectGroupRequest{Labels: req.Labels})
-	if err == nil {
-		// lookup the Profile by id
-		profile, err := s.ProfileGet(ctx, &pb.ProfileGetRequest{Id: group.Profile})
-		if err == nil {
-			return profile, nil
-		}
-		return nil, ErrNoMatchingProfile
-	}
-	return nil, ErrNoMatchingGroup
-}
-
-// IgnitionPut creates or updates an Ignition template by name.
-func (s *server) IgnitionPut(ctx context.Context, req *pb.IgnitionPutRequest) (string, error) {
-	err := s.store.IgnitionPut(req.Name, req.Config)
-	if err != nil {
-		return "", err
-	}
-	return string(req.Config), err
-}
-
-// IgnitionGet gets an Ignition template by name.
-func (s *server) IgnitionGet(ctx context.Context, req *pb.IgnitionGetRequest) (string, error) {
-	return s.store.IgnitionGet(req.Name)
-}
-
-// IgnitionDelete deletes an Ignition template by name.
-func (s *server) IgnitionDelete(ctx context.Context, req *pb.IgnitionDeleteRequest) error {
-	return s.store.IgnitionDelete(req.Name)
-}
-
-// GenericPut creates or updates an Generic template by name.
-func (s *server) GenericPut(ctx context.Context, req *pb.GenericPutRequest) (string, error) {
-	err := s.store.GenericPut(req.Name, req.Config)
-	if err != nil {
-		return "", err
-	}
-	return string(req.Config), err
-}
-
-// GenericGet gets an Generic template by name.
-func (s *server) GenericGet(ctx context.Context, req *pb.GenericGetRequest) (string, error) {
-	return s.store.GenericGet(req.Name)
+// GenericGet gets a template by name.
+func (s *server) TemplateGet(ctx context.Context, req *pb.TemplateGetRequest) (*storagepb.Template, error) {
+	return s.store.TemplateGet(req.Id)
 }
 
 // GenericDelete deletes an Generic template by name.
-func (s *server) GenericDelete(ctx context.Context, req *pb.GenericDeleteRequest) error {
-	return s.store.GenericDelete(req.Name)
-}
-
-// CloudGet gets a Cloud-Config template by name.
-func (s *server) CloudGet(ctx context.Context, name string) (string, error) {
-	return s.store.CloudGet(name)
+func (s *server) TemplateDelete(ctx context.Context, req *pb.TemplateDeleteRequest) error {
+	return s.store.TemplateDelete(req.Id)
 }

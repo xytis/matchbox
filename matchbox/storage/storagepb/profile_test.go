@@ -8,9 +8,12 @@ import (
 
 var (
 	testProfile = &Profile{
-		Id:         "id",
-		CloudId:    "cloud.yaml",
-		IgnitionId: "ignition.json",
+		Id:   "id",
+		Name: "name",
+		Template: map[string]string{
+			"key": "value",
+		},
+		Metadata: []byte(`{"key":"value", "map":{"key":"value"}}`),
 	}
 )
 
@@ -19,10 +22,11 @@ func TestProfileParse(t *testing.T) {
 		json    string
 		profile *Profile
 	}{
-		{`{"id": "id", "cloud_id": "cloud.yaml", "ignition_id": "ignition.json"}`, testProfile},
+		{`{"id":"id", "name":"name", "template":{"key":"value"}, "metadata":"eyJrZXkiOiJ2YWx1ZSIsICJtYXAiOnsia2V5IjoidmFsdWUifX0="}`, testProfile},
 	}
 	for _, c := range cases {
-		profile, _ := ParseProfile([]byte(c.json))
+		profile, err := ParseProfile([]byte(c.json))
+		assert.Nil(t, err)
 		assert.Equal(t, c.profile, profile)
 	}
 }
@@ -43,52 +47,13 @@ func TestProfileValidate(t *testing.T) {
 }
 
 func TestProfileCopy(t *testing.T) {
-	profile := &Profile{
-		Id:         "id",
-		CloudId:    "cloudy.tmpl",
-		IgnitionId: "ignition.tmpl",
-		Boot: &NetBoot{
-			Kernel: "/image/kernel",
-			Initrd: []string{"/image/initrd_a"},
-			Args:   []string{"a=b"},
-		},
-	}
+	profile := testProfile
 	clone := profile.Copy()
 	// assert that:
 	// - Profile fields are copied to the clone
 	// - Mutation of the clone does not affect the original
 	assert.Equal(t, profile.Id, clone.Id)
 	assert.Equal(t, profile.Name, clone.Name)
-	assert.Equal(t, profile.IgnitionId, clone.IgnitionId)
-	assert.Equal(t, profile.CloudId, clone.CloudId)
-	assert.Equal(t, profile.Boot, clone.Boot)
-
-	// mutate the NetBoot struct
-	clone.Boot.Initrd = []string{"/image/initrd_b"}
-	clone.Boot.Args = []string{"console=ttyS0"}
-	assert.NotEqual(t, profile.Boot.Initrd, clone.Boot.Initrd)
-	assert.NotEqual(t, profile.Boot.Args, clone.Boot.Args)
-}
-
-func TestNetBootCopy(t *testing.T) {
-	boot := &NetBoot{
-		Kernel: "/image/kernel",
-		Initrd: []string{"/image/initrd_a"},
-		Args:   []string{"a=b"},
-	}
-
-	clone := boot.Copy()
-	// assert that:
-	// - NetBoot fields are copied to the clone
-	// - Mutation of the clone does not affect the original
-	assert.Equal(t, boot.Kernel, clone.Kernel)
-	assert.Equal(t, boot.Initrd, clone.Initrd)
-	assert.Equal(t, boot.Args, clone.Args)
-
-	// mutate the clone's slice field contents
-	extra := []string{"extra"}
-	copy(clone.Initrd, extra)
-	copy(clone.Args, extra)
-	assert.NotEqual(t, boot.Initrd, clone.Initrd)
-	assert.NotEqual(t, boot.Args, clone.Args)
+	assert.Equal(t, profile.Template, clone.Template)
+	assert.Equal(t, profile.Metadata, clone.Metadata)
 }

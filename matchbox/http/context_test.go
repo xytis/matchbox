@@ -1,9 +1,9 @@
 package http
 
 import (
+	"context"
 	"testing"
 
-	"context"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/coreos/matchbox/matchbox/storage/storagepb"
@@ -39,4 +39,11 @@ func TestContextGroup_Error(t *testing.T) {
 	if assert.NotNil(t, err) {
 		assert.Equal(t, errNoGroupFromContext, err)
 	}
+}
+
+func createFakeContext(ctx context.Context, labels map[string]string, profile *storagepb.Profile, group *storagepb.Group) context.Context {
+	ctx = withLabels(ctx, labels)
+	ctx = withProfile(ctx, profile)
+	ctx = withGroup(ctx, group)
+	return ctx
 }

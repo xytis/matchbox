@@ -18,7 +18,6 @@ var (
 		Long:  `Create a machine profile`,
 		Run:   runProfilePutCmd,
 	}
-	flagFilename string
 )
 
 func init() {
