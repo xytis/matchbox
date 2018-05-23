@@ -63,3 +63,8 @@ func (s *EmptyStore) TemplateGet(id string) (*storagepb.Template, error) {
 func (s *EmptyStore) TemplateDelete(id string) error {
 	return nil
 }
+
+// TemplateList returns an empty list of profiles.
+func (s *EmptyStore) TemplateList() (templates []*storagepb.Template, err error) {
+	return templates, nil
+}

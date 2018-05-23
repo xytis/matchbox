@@ -36,8 +36,7 @@ message GroupGetResponse {
 message GroupDeleteRequest {
   string id = 1;
 }
-message GroupDeleteResponse {
-}
+message GroupDeleteResponse {}
 
 message GroupListRequest {}
 message GroupListResponse {
@@ -61,15 +60,14 @@ message ProfileGetResponse {
 message ProfileDeleteRequest {
   string id = 1;
 }
-message ProfileDeleteResponse {
-}
+message ProfileDeleteResponse {}
 
 message ProfileListRequest {}
 message ProfileListResponse {
   repeated storagepb.Profile profiles = 1;
 }
 
-// Generic
+// Templates
 
 message TemplatePutRequest {
   storagepb.Template template = 1;
@@ -87,3 +85,8 @@ message TemplateDeleteRequest {
   string id = 1;
 }
 message TemplateDeleteResponse {}
+
+message TemplateListRequest {}
+message TemplateListResponse {
+  repeated storagepb.Template templates = 1;
+}

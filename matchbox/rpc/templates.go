@@ -33,3 +33,8 @@ func (s *templateServer) TemplateDelete(ctx context.Context, req *pb.TemplateDel
 	err := s.srv.TemplateDelete(ctx, req)
 	return &pb.TemplateDeleteResponse{}, grpcError(err)
 }
+
+func (s *templateServer) TemplateList(ctx context.Context, req *pb.TemplateListRequest) (*pb.TemplateListResponse, error) {
+	templates, err := s.srv.TemplateList(ctx, req)
+	return &pb.TemplateListResponse{Templates: templates}, grpcError(err)
+}

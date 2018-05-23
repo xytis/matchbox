@@ -13,6 +13,9 @@ import (
 
 var (
 	etcdStoreNamespace = "coreos.matchbox.v1/"
+	groupScope         = "/groups/"
+	profileScope       = "/profiles/"
+	templateScope      = "/templates/"
 )
 
 // EtcdStoreConfig initializes a etcdStore.
@@ -57,13 +60,13 @@ func (s *etcdStore) GroupPut(group *storagepb.Group) error {
 		return err
 	}
 
-	_, err = s.client.Put(context.Background(), "/groups/"+group.Id, string(data))
+	_, err = s.client.Put(context.Background(), groupScope+group.Id, string(data))
 	return err
 }
 
 // GroupGet returns a machine Group by id.
 func (s *etcdStore) GroupGet(id string) (*storagepb.Group, error) {
-	resp, err := s.client.Get(context.Background(), "/groups/"+id)
+	resp, err := s.client.Get(context.Background(), groupScope+id)
 	if err != nil {
 		return nil, err
 	}
@@ -80,13 +83,13 @@ func (s *etcdStore) GroupGet(id string) (*storagepb.Group, error) {
 
 // GroupDelete deletes a machine Group by id.
 func (s *etcdStore) GroupDelete(id string) error {
-	_, err := s.client.Delete(context.Background(), "/groups/"+id)
+	_, err := s.client.Delete(context.Background(), groupScope+id)
 	return err
 }
 
 // GroupList lists all machine Groups.
 func (s *etcdStore) GroupList() ([]*storagepb.Group, error) {
-	resp, err := s.client.Get(context.Background(), "/groups/", etcd.WithPrefix())
+	resp, err := s.client.Get(context.Background(), groupScope, etcd.WithPrefix())
 	if err != nil {
 		return nil, err
 	}
@@ -109,13 +112,13 @@ func (s *etcdStore) ProfilePut(profile *storagepb.Profile) error {
 	if err != nil {
 		return err
 	}
-	_, err = s.client.Put(context.Background(), "/profiles/"+profile.Id, string(data))
+	_, err = s.client.Put(context.Background(), profileScope+profile.Id, string(data))
 	return err
 }
 
 // ProfileGet gets a profile by id.
 func (s *etcdStore) ProfileGet(id string) (*storagepb.Profile, error) {
-	resp, err := s.client.Get(context.Background(), "/profiles/"+id)
+	resp, err := s.client.Get(context.Background(), profileScope+id)
 	if err != nil {
 		return nil, err
 	}
@@ -136,13 +139,13 @@ func (s *etcdStore) ProfileGet(id string) (*storagepb.Profile, error) {
 
 // ProfileDelete deletes a profile by id.
 func (s *etcdStore) ProfileDelete(id string) error {
-	_, err := s.client.Delete(context.Background(), "/profiles/"+id)
+	_, err := s.client.Delete(context.Background(), profileScope+id)
 	return err
 }
 
 // ProfileList lists all profiles.
 func (s *etcdStore) ProfileList() ([]*storagepb.Profile, error) {
-	resp, err := s.client.Get(context.Background(), "/profiles/", etcd.WithPrefix())
+	resp, err := s.client.Get(context.Background(), profileScope, etcd.WithPrefix())
 	if err != nil {
 		return nil, err
 	}
@@ -165,13 +168,13 @@ func (s *etcdStore) TemplatePut(template *storagepb.Template) error {
 	if err != nil {
 		return err
 	}
-	_, err = s.client.Put(context.Background(), "/template/"+template.Id, string(data))
+	_, err = s.client.Put(context.Background(), templateScope+template.Id, string(data))
 	return err
 }
 
 // TemplateGet gets a template by name.
 func (s *etcdStore) TemplateGet(id string) (*storagepb.Template, error) {
-	resp, err := s.client.Get(context.Background(), "/template/"+id)
+	resp, err := s.client.Get(context.Background(), templateScope+id)
 	if err != nil {
 		return nil, err
 	}
@@ -192,6 +195,25 @@ func (s *etcdStore) TemplateGet(id string) (*storagepb.Template, error) {
 
 // TemplateDelete deletes a template by name.
 func (s *etcdStore) TemplateDelete(id string) error {
-	_, err := s.client.Delete(context.Background(), "/template/"+id)
+	_, err := s.client.Delete(context.Background(), templateScope+id)
 	return err
+}
+
+// TemplateList lists all profiles.
+func (s *etcdStore) TemplateList() ([]*storagepb.Template, error) {
+	resp, err := s.client.Get(context.Background(), templateScope, etcd.WithPrefix())
+	if err != nil {
+		return nil, err
+	}
+	templates := make([]*storagepb.Template, 0, resp.Count)
+	for _, kv := range resp.Kvs {
+		template := new(storagepb.Template)
+		err = json.Unmarshal([]byte(kv.Value), template)
+		if err == nil {
+			templates = append(templates, template)
+		} else if s.logger != nil {
+			s.logger.Infof("Template %q: %v", kv.Key, err)
+		}
+	}
+	return templates, nil
 }

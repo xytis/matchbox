@@ -101,3 +101,14 @@ func (s *FixedStore) TemplateDelete(id string) error {
 	delete(s.Templates, id)
 	return nil
 }
+
+// TemplateList returns the profiles in the Templates map.
+func (s *FixedStore) TemplateList() ([]*storagepb.Template, error) {
+	templates := make([]*storagepb.Template, len(s.Templates))
+	i := 0
+	for _, p := range s.Templates {
+		templates[i] = p
+		i++
+	}
+	return templates, nil
+}

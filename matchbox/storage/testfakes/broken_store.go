@@ -61,3 +61,8 @@ func (s *BrokenStore) TemplateGet(string) (*storagepb.Template, error) {
 func (s *BrokenStore) TemplateDelete(string) error {
 	return errIntentional
 }
+
+// TemplateList returns an error.
+func (s *BrokenStore) TemplateList() (templates []*storagepb.Template, err error) {
+	return templates, errIntentional
+}

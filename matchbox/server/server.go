@@ -48,6 +48,8 @@ type Server interface {
 	TemplateGet(context.Context, *pb.TemplateGetRequest) (*storagepb.Template, error)
 	// Delete a template by name.
 	TemplateDelete(context.Context, *pb.TemplateDeleteRequest) error
+	// List all Templates
+	TemplateList(context.Context, *pb.TemplateListRequest) ([]*storagepb.Template, error)
 }
 
 // Config configures a server implementation.
@@ -163,7 +165,6 @@ func (s *server) ProfileList(ctx context.Context, req *pb.ProfileListRequest) ([
 	return profiles, nil
 }
 
-// GenericPut creates or updates a template by name.
 func (s *server) TemplatePut(ctx context.Context, req *pb.TemplatePutRequest) (*storagepb.Template, error) {
 	err := s.store.TemplatePut(req.Template)
 	if err != nil {
@@ -172,12 +173,18 @@ func (s *server) TemplatePut(ctx context.Context, req *pb.TemplatePutRequest) (*
 	return req.Template, err
 }
 
-// GenericGet gets a template by name.
 func (s *server) TemplateGet(ctx context.Context, req *pb.TemplateGetRequest) (*storagepb.Template, error) {
 	return s.store.TemplateGet(req.Id)
 }
 
-// GenericDelete deletes an Generic template by name.
 func (s *server) TemplateDelete(ctx context.Context, req *pb.TemplateDeleteRequest) error {
 	return s.store.TemplateDelete(req.Id)
+}
+
+func (s *server) TemplateList(ctx context.Context, req *pb.TemplateListRequest) ([]*storagepb.Template, error) {
+	templates, err := s.store.TemplateList()
+	if err != nil {
+		return nil, err
+	}
+	return templates, nil
 }

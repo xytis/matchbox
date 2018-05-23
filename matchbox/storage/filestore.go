@@ -160,3 +160,22 @@ func (s *fileStore) TemplateGet(id string) (*storagepb.Template, error) {
 func (s *fileStore) TemplateDelete(id string) error {
 	return Dir(s.root).deleteFile(filepath.Join("templates", id+".json"))
 }
+
+// TemplateList lists all Templates.
+func (s *fileStore) TemplateList() ([]*storagepb.Template, error) {
+	files, err := Dir(s.root).readDir("templates")
+	if err != nil {
+		return nil, err
+	}
+	templates := make([]*storagepb.Template, 0, len(files))
+	for _, finfo := range files {
+		name := strings.TrimSuffix(finfo.Name(), filepath.Ext(finfo.Name()))
+		template, err := s.TemplateGet(name)
+		if err == nil {
+			templates = append(templates, template)
+		} else if s.logger != nil {
+			s.logger.Infof("Template%q: %v", name, err)
+		}
+	}
+	return templates, nil
+}

@@ -39,4 +39,6 @@ type Store interface {
 	TemplateGet(id string) (*storagepb.Template, error)
 	// TemplateDelete deletes a template by name.
 	TemplateDelete(id string) error
+	// TemplateList lists all templates
+	TemplateList() ([]*storagepb.Template, error)
 }

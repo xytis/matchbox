@@ -28,10 +28,12 @@ service Profiles {
 service Templates {
   // Create or update a template.
   rpc TemplatePut(serverpb.TemplatePutRequest) returns (serverpb.TemplatePutResponse) {};
-  // Get a template by name.
+  // Get a template by id.
   rpc TemplateGet(serverpb.TemplateGetRequest) returns (serverpb.TemplateGetResponse) {};
-  // Delete a template by name.
+  // Delete a template by id.
   rpc TemplateDelete(serverpb.TemplateDeleteRequest) returns (serverpb.TemplateDeleteResponse) {};
+  // List all templates available.
+  rpc TemplateList(serverpb.TemplateListRequest) returns (serverpb.TemplateListResponse) {};
 }
 
 service Select {
