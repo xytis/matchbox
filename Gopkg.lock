@@ -2,15 +2,6 @@
 
 
 [[projects]]
-  name = "github.com/Sirupsen/logrus"
-  packages = [
-    ".",
-    "hooks/test"
-  ]
-  revision = "ba1b36c82c5e05c4f912a88eab0dcd91a171688f"
-  version = "v0.11.5"
-
-[[projects]]
   branch = "go15"
   name = "github.com/ajeddeloh/go-json"
   packages = ["."]
@@ -326,6 +317,15 @@
   revision = "8b1c2da0d56deffdbb9e48d4414b4e674bd8083e"
 
 [[projects]]
+  name = "github.com/sirupsen/logrus"
+  packages = [
+    ".",
+    "hooks/test"
+  ]
+  revision = "c155da19408a8799da419ed3eeb0cb5db0ad5dbc"
+  version = "v1.0.5"
+
+[[projects]]
   name = "github.com/soheilhy/cmux"
   packages = ["."]
   revision = "e09e9389d85d8492d313d73d1469c029e710623f"
@@ -350,10 +350,10 @@
   version = "v1.2.1"
 
 [[projects]]
-  branch = "customizability"
+  branch = "master"
   name = "github.com/tmc/grpc-websocket-proxy"
   packages = ["wsproxy"]
-  revision = "feccd87d2b7f973f1b03d85a4ee460824982ee2b"
+  revision = "830351dc03c6f07d625727d5f993a463babb20e1"
 
 [[projects]]
   name = "github.com/ugorji/go"
@@ -391,7 +391,8 @@
     "openpgp/elgamal",
     "openpgp/errors",
     "openpgp/packet",
-    "openpgp/s2k"
+    "openpgp/s2k",
+    "ssh/terminal"
   ]
   revision = "2d027ae1dddd4694d54f7a8b6cbe78dca8720226"
 
@@ -412,7 +413,10 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
-  packages = ["unix"]
+  packages = [
+    "unix",
+    "windows"
+  ]
   revision = "7dfd1290c7917b7ba22824b9d24954ab3002fe24"
 
 [[projects]]
@@ -490,6 +494,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "162d91f1810eec8fe47e6c7b04b3f3d2836df594fd5ddac1e08ac08f352ae794"
+  inputs-digest = "58679e3107525964ea34715b7555daf2631a549445f22f6372a1425619edfb5a"
   solver-name = "gps-cdcl"
   solver-version = 1

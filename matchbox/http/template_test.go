@@ -6,8 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	log "github.com/Sirupsen/logrus"
-	logtest "github.com/Sirupsen/logrus/hooks/test"
+	log "github.com/sirupsen/logrus"
+	logtest "github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/coreos/matchbox/matchbox/server"

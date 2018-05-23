@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/coreos/pkg/flagutil"
+	"github.com/sirupsen/logrus"
 
 	web "github.com/coreos/matchbox/matchbox/http"
 	"github.com/coreos/matchbox/matchbox/rpc"
@@ -57,7 +57,7 @@ func main() {
 	flag.StringVar(&flags.dataPath, "data-path", "/var/lib/matchbox", "Path to data directory")
 	flag.StringVar(&flags.assetsPath, "assets-path", "/var/lib/matchbox/assets", "Path to static assets")
 
-	// Log levels https://github.com/Sirupsen/logrus/blob/master/logrus.go#L36
+	// Log levels https://github.com/sirupsen/logrus/blob/master/logrus.go#L36
 	flag.StringVar(&flags.logLevel, "log-level", "info", "Set the logging level")
 
 	// gRPC Server TLS

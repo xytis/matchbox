@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	//ct "github.com/coreos/container-linux-config-transpiler/config"
 	ignition "github.com/coreos/ignition/config"
 

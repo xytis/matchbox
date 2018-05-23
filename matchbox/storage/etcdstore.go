@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/Sirupsen/logrus"
 	etcd "github.com/coreos/etcd/clientv3"
 	namespace "github.com/coreos/etcd/clientv3/namespace"
 	"github.com/coreos/matchbox/matchbox/storage/storagepb"
+	"github.com/sirupsen/logrus"
 )
 
 var (
