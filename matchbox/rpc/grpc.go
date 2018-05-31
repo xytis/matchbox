@@ -10,18 +10,24 @@ import (
 	"github.com/coreos/matchbox/matchbox/server"
 )
 
+// Config prepares rpc server
+type Config struct {
+	Core server.Server
+	TLS  *tls.Config
+}
+
 // NewServer wraps the matchbox Server to return a new gRPC Server.
-func NewServer(s server.Server, tls *tls.Config) *grpc.Server {
+func NewServer(config *Config) *grpc.Server {
 	var opts []grpc.ServerOption
-	if tls != nil {
+	if config.TLS != nil {
 		// Add TLS Credentials as a ServerOption for server connections.
-		opts = append(opts, grpc.Creds(credentials.NewTLS(tls)))
+		opts = append(opts, grpc.Creds(credentials.NewTLS(config.TLS)))
 	}
 
 	grpcServer := grpc.NewServer(opts...)
-	rpcpb.RegisterGroupsServer(grpcServer, newGroupServer(s))
-	rpcpb.RegisterProfilesServer(grpcServer, newProfileServer(s))
-	rpcpb.RegisterTemplatesServer(grpcServer, newTemplateServer(s))
-	rpcpb.RegisterSelectServer(grpcServer, newSelectServer(s))
+	rpcpb.RegisterGroupsServer(grpcServer, newGroupServer(config.Core))
+	rpcpb.RegisterProfilesServer(grpcServer, newProfileServer(config.Core))
+	rpcpb.RegisterTemplatesServer(grpcServer, newTemplateServer(config.Core))
+	rpcpb.RegisterSelectServer(grpcServer, newSelectServer(config.Core))
 	return grpcServer
 }

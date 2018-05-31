@@ -5,15 +5,11 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/coreos/matchbox/matchbox/storage/config"
 	"github.com/coreos/matchbox/matchbox/storage/storagepb"
+
 	"github.com/sirupsen/logrus"
 )
-
-// FileStoreConfig initializes a fileStore.
-type FileStoreConfig struct {
-	Root   string
-	Logger *logrus.Logger
-}
 
 // fileStore implements ths Store interface. Queries to the file system
 // are restricted to the specified directory tree.
@@ -23,11 +19,12 @@ type fileStore struct {
 }
 
 // NewFileStore returns a new memory-backed Store.
-func NewFileStore(config *FileStoreConfig) Store {
+func NewFileStore(config *config.FileStoreConfig) (Store, error) {
+
 	return &fileStore{
 		root:   config.Root,
 		logger: config.Logger,
-	}
+	}, nil
 }
 
 // GroupPut writes the given Group.

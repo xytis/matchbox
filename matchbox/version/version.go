@@ -2,4 +2,7 @@
 package version
 
 // Version provided by compile time -ldflags.
-var Version = "was not built properly"
+const (
+	Version   = "was not built properly"
+	GitCommit = "was not built properly"
+)

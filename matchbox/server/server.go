@@ -1,14 +1,15 @@
 package server
 
 import (
-	"errors"
 	"sort"
 
 	"context"
 
+	"github.com/coreos/matchbox/matchbox/server/config"
 	pb "github.com/coreos/matchbox/matchbox/server/serverpb"
 	"github.com/coreos/matchbox/matchbox/storage"
 	"github.com/coreos/matchbox/matchbox/storage/storagepb"
+	"github.com/pkg/errors"
 )
 
 // Possible service errors
@@ -52,22 +53,38 @@ type Server interface {
 	TemplateList(context.Context, *pb.TemplateListRequest) ([]*storagepb.Template, error)
 }
 
-// Config configures a server implementation.
-type Config struct {
-	Store storage.Store
-}
-
 // server implements the Server interface.
 type server struct {
 	store storage.Store
 }
 
 // NewServer returns a new Server.
-func NewServer(config *Config) Server {
-	storage.AssertDefaultTemplates(config.Store)
+func NewServer(config *config.Config) Server {
+	store := createStore(config)
+	storage.AssertDefaultTemplates(store)
 	return &server{
-		store: config.Store,
+		store: store,
 	}
+}
+
+func createStore(config *config.Config) storage.Store {
+	switch config.StoreBackend {
+	case "filesystem":
+		store, err := storage.NewFileStore(config.FileStoreConfig)
+		if err != nil {
+			panic(errors.Wrap(err, "failure creating filesystem store"))
+		}
+		return store
+	case "etcd":
+		store, err := storage.NewEtcdStore(config.EtcdStoreConfig)
+		if err != nil {
+			panic(errors.Wrap(err, "failure creating etcd store"))
+		}
+		return store
+	default:
+		panic("unsuported storage engine")
+	}
+
 }
 
 // SelectGroup selects the Group whose selector matches the given labels.

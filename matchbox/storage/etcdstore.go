@@ -5,25 +5,20 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/coreos/matchbox/matchbox/storage/config"
+	"github.com/coreos/matchbox/matchbox/storage/storagepb"
+
 	etcd "github.com/coreos/etcd/clientv3"
 	namespace "github.com/coreos/etcd/clientv3/namespace"
-	"github.com/coreos/matchbox/matchbox/storage/storagepb"
 	"github.com/sirupsen/logrus"
 )
 
-var (
+const (
 	etcdStoreNamespace = "coreos.matchbox.v1/"
 	groupScope         = "/groups/"
 	profileScope       = "/profiles/"
 	templateScope      = "/templates/"
 )
-
-// EtcdStoreConfig initializes a etcdStore.
-type EtcdStoreConfig struct {
-	Config etcd.Config
-	Prefix string
-	Logger *logrus.Logger
-}
 
 // etcdStore implements ths Store interface.
 type etcdStore struct {
@@ -32,11 +27,14 @@ type etcdStore struct {
 }
 
 // NewEtcdStore returns a new etcd-backed Store.
-func NewEtcdStore(config *EtcdStoreConfig) (Store, error) {
-	if config.Config.DialTimeout == 0 {
-		config.Config.DialTimeout = 5 * time.Second
+func NewEtcdStore(config *config.EtcdStoreConfig) (Store, error) {
+	cfg := etcd.Config{
+		Endpoints:   config.Endpoints,
+		Password:    config.Password,
+		Username:    config.Username,
+		DialTimeout: 5 * time.Second,
 	}
-	client, err := etcd.New(config.Config)
+	client, err := etcd.New(cfg)
 	if err != nil {
 		return nil, err
 	}
