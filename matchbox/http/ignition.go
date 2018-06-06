@@ -2,10 +2,11 @@ package http
 
 import (
 	"bytes"
+	"fmt"
 	"net/http"
 	"strings"
 
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 	//ct "github.com/coreos/container-linux-config-transpiler/config"
 	ignition "github.com/coreos/ignition/config"
 
@@ -25,30 +26,30 @@ func (s *Server) ignitionHandler() http.Handler {
 
 		group, err := groupFromContext(ctx)
 		if err != nil {
-			s.logger.WithFields(logrus.Fields{
-				"labels": labels,
-			}).Infof("No matching group")
+			s.logger.Info("group not matched",
+				zap.String("labels", fmt.Sprintf("%v", labels)),
+			)
 			http.NotFound(w, req)
 			return
 		}
 
 		profile, err := profileFromContext(ctx)
 		if err != nil {
-			s.logger.WithFields(logrus.Fields{
-				"labels": labels,
-			}).Infof("No matching profile")
+			s.logger.Info("profile not matched",
+				zap.String("labels", fmt.Sprintf("%v", labels)),
+			)
 			http.NotFound(w, req)
 			return
 		}
 
 		metadata, err := mergeMetadata(ctx)
 		if err != nil {
-			s.logger.WithFields(logrus.Fields{
-				"labels":  labels,
-				"group":   group.Id,
-				"profile": profile.Id,
-				"error":   err,
-			}).Warnf("Issue with metadata")
+			s.logger.Info("metadata not merged",
+				zap.Error(err),
+				zap.String("labels", fmt.Sprintf("%v", labels)),
+				zap.String("group", group.Id),
+				zap.String("profile", profile.Id),
+			)
 		}
 
 		templateID, present := profile.Template["ignition"]
@@ -57,28 +58,29 @@ func (s *Server) ignitionHandler() http.Handler {
 		}
 		tmpl, err := core.TemplateGet(ctx, &pb.TemplateGetRequest{Id: templateID})
 		if err != nil {
-			s.logger.WithFields(logrus.Fields{
-				"labels":  labels,
-				"group":   group.Id,
-				"profile": profile.Id,
-			}).Infof("No template named: %s", templateID)
+			s.logger.Info("template not found",
+				zap.String("template", templateID),
+				zap.String("labels", fmt.Sprintf("%v", labels)),
+				zap.String("group", group.Id),
+				zap.String("profile", profile.Id),
+			)
 			http.NotFound(w, req)
 			return
 		}
 
 		var buf bytes.Buffer
 		if err = Render(&buf, tmpl.Id, string(tmpl.Contents), metadata); err != nil {
-			s.logger.Errorf("error rendering template: %v", err)
+			s.logger.Error("error rendering template", zap.Error(err))
 			http.NotFound(w, req)
 			return
 		}
 		_, report, err := ignition.Parse(buf.Bytes())
 		if err != nil {
-			s.logger.Warningf("warning parsing Ignition JSON: %s", report.String())
+			s.logger.Warn("ignition parsing failed", zap.Error(err), zap.String("report", report.String()))
 		}
 		w.Header().Set(contentType, jsonContentType)
 		if _, err := buf.WriteTo(w); err != nil {
-			s.logger.Errorf("error writing to response: %v", err)
+			s.logger.Error("error writing to response", zap.Error(err))
 			w.WriteHeader(http.StatusInternalServerError)
 		}
 

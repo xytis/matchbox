@@ -8,22 +8,22 @@ import (
 	"github.com/coreos/matchbox/matchbox/storage/config"
 	"github.com/coreos/matchbox/matchbox/storage/storagepb"
 
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 // fileStore implements ths Store interface. Queries to the file system
 // are restricted to the specified directory tree.
 type fileStore struct {
 	root   string
-	logger *logrus.Logger
+	logger *zap.SugaredLogger
 }
 
 // NewFileStore returns a new memory-backed Store.
-func NewFileStore(config *config.FileStoreConfig) (Store, error) {
+func NewFileStore(config *config.FileStoreConfig, logger *zap.Logger) (Store, error) {
 
 	return &fileStore{
 		root:   config.Root,
-		logger: config.Logger,
+		logger: logger.Sugar(),
 	}, nil
 }
 

@@ -5,7 +5,6 @@ import (
 
 	"context"
 
-	"github.com/coreos/matchbox/matchbox/server/config"
 	pb "github.com/coreos/matchbox/matchbox/server/serverpb"
 	"github.com/coreos/matchbox/matchbox/storage"
 	"github.com/coreos/matchbox/matchbox/storage/storagepb"
@@ -59,32 +58,11 @@ type server struct {
 }
 
 // NewServer returns a new Server.
-func NewServer(config *config.Config) Server {
-	store := createStore(config)
+func NewServer(store storage.Store) Server {
 	storage.AssertDefaultTemplates(store)
 	return &server{
 		store: store,
 	}
-}
-
-func createStore(config *config.Config) storage.Store {
-	switch config.StoreBackend {
-	case "filesystem":
-		store, err := storage.NewFileStore(config.FileStoreConfig)
-		if err != nil {
-			panic(errors.Wrap(err, "failure creating filesystem store"))
-		}
-		return store
-	case "etcd":
-		store, err := storage.NewEtcdStore(config.EtcdStoreConfig)
-		if err != nil {
-			panic(errors.Wrap(err, "failure creating etcd store"))
-		}
-		return store
-	default:
-		panic("unsuported storage engine")
-	}
-
 }
 
 // SelectGroup selects the Group whose selector matches the given labels.

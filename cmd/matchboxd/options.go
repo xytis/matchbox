@@ -1,35 +1,30 @@
 package main
 
 import (
-	"github.com/coreos/matchbox/matchbox/server/config"
-	// "github.com/docker/go-connections/tlsconfig"
-	"github.com/sirupsen/logrus"
+	"github.com/coreos/matchbox/matchbox/storage/config"
+
+	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
 type daemonOptions struct {
-	version bool
-
-	logger *logrus.Logger
-
-	serverConfig *config.Config
-	daemonConfig *DaemonConfig
+	version       bool
+	storageConfig *config.Config
+	daemonConfig  *DaemonConfig
 }
 
 // newDaemonOptions returns a new daemonOptions
-func newDaemonOptions(logger *logrus.Logger) *daemonOptions {
+func newDaemonOptions() *daemonOptions {
 	return &daemonOptions{
-		logger:       logger,
-		daemonConfig: NewDaemonConfig(),
-		serverConfig: config.NewConfig(logger),
+		daemonConfig:  NewDaemonConfig(),
+		storageConfig: config.NewConfig(),
 	}
 }
 
 // InstallFlags adds flags for the common options on the FlagSet
 func (o *daemonOptions) InstallFlags(flags *pflag.FlagSet) {
 	// Daemon flags
-	flags.StringP("log-level", "l", "info", `Set the logging level ("debug"|"info"|"warn"|"error"|"fatal")`)
 	flags.String("http-address", "127.0.0.1:8080", "HTTP listen address")
 	flags.String("rpc-address", "", "RPC listen address")
 
@@ -61,14 +56,7 @@ func (o *daemonOptions) InstallFlags(flags *pflag.FlagSet) {
 }
 
 // ExtractConfig aquires required values from configuration
-func (o *daemonOptions) ExtractConfig(cfg *viper.Viper) {
-	// logging setup
-	lvl, err := logrus.ParseLevel(cfg.GetString("log-level"))
-	if err != nil {
-		o.logger.Fatalf("invalid log-level: %v", err)
-	}
-	o.logger.Level = lvl
-
+func (o *daemonOptions) ExtractConfig(cfg *viper.Viper) error {
 	o.daemonConfig.HTTPAddress = cfg.GetString("http-address")
 	o.daemonConfig.RPCAddress = cfg.GetString("rpc-address")
 	o.daemonConfig.TLS = cfg.GetBool("tls")
@@ -81,25 +69,27 @@ func (o *daemonOptions) ExtractConfig(cfg *viper.Viper) {
 	o.daemonConfig.SignaturePassphase = cfg.GetString("signature-passphrase")
 
 	if err := o.daemonConfig.Validate(); err != nil {
-		o.logger.Fatalf("invalid configuration: %v", err)
+		return errors.Wrap(err, "invalid configuration")
 	}
 
-	o.serverConfig.StoreBackend = cfg.GetString("store-backend")
+	o.storageConfig.StoreBackend = cfg.GetString("store-backend")
 
-	o.serverConfig.FileStoreConfig.Root = cfg.GetString("store-filesystem-root")
+	o.storageConfig.FileStoreConfig.Root = cfg.GetString("store-filesystem-root")
 
-	o.serverConfig.EtcdStoreConfig.Endpoints = cfg.GetStringSlice("store-etcd-endpoints")
-	o.serverConfig.EtcdStoreConfig.Username = cfg.GetString("store-etcd-username")
-	o.serverConfig.EtcdStoreConfig.Password = cfg.GetString("store-etcd-password")
-	o.serverConfig.EtcdStoreConfig.Prefix = cfg.GetString("store-etcd-prefix")
-	o.serverConfig.EtcdStoreConfig.TLS = cfg.GetBool("store-etcd-tls")
-	o.serverConfig.EtcdStoreConfig.TLSCAFile = cfg.GetString("store-etcd-tls-ca")
-	o.serverConfig.EtcdStoreConfig.TLSCertFile = cfg.GetString("store-etcd-tls-cert")
-	o.serverConfig.EtcdStoreConfig.TLSInsecureSkipVerify = cfg.GetBool("store-etcd-tls-insecure-skip-verify")
-	o.serverConfig.EtcdStoreConfig.TLSKeyFile = cfg.GetString("store-etcd-tls-key")
-	o.serverConfig.EtcdStoreConfig.TLSServerName = cfg.GetString("store-etcd-tls-server-name")
+	o.storageConfig.EtcdStoreConfig.Endpoints = cfg.GetStringSlice("store-etcd-endpoints")
+	o.storageConfig.EtcdStoreConfig.Username = cfg.GetString("store-etcd-username")
+	o.storageConfig.EtcdStoreConfig.Password = cfg.GetString("store-etcd-password")
+	o.storageConfig.EtcdStoreConfig.Prefix = cfg.GetString("store-etcd-prefix")
+	o.storageConfig.EtcdStoreConfig.TLS = cfg.GetBool("store-etcd-tls")
+	o.storageConfig.EtcdStoreConfig.TLSCAFile = cfg.GetString("store-etcd-tls-ca")
+	o.storageConfig.EtcdStoreConfig.TLSCertFile = cfg.GetString("store-etcd-tls-cert")
+	o.storageConfig.EtcdStoreConfig.TLSInsecureSkipVerify = cfg.GetBool("store-etcd-tls-insecure-skip-verify")
+	o.storageConfig.EtcdStoreConfig.TLSKeyFile = cfg.GetString("store-etcd-tls-key")
+	o.storageConfig.EtcdStoreConfig.TLSServerName = cfg.GetString("store-etcd-tls-server-name")
 
-	if err := o.serverConfig.Validate(); err != nil {
-		o.logger.Fatalf("invalid configuration: %v", err)
+	if err := o.storageConfig.Validate(); err != nil {
+		return errors.Wrap(err, "invalid configuration")
 	}
+
+	return nil
 }

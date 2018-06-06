@@ -10,7 +10,7 @@ import (
 
 	etcd "github.com/coreos/etcd/clientv3"
 	namespace "github.com/coreos/etcd/clientv3/namespace"
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 const (
@@ -23,11 +23,11 @@ const (
 // etcdStore implements ths Store interface.
 type etcdStore struct {
 	client *etcd.Client
-	logger *logrus.Logger
+	logger *zap.SugaredLogger
 }
 
 // NewEtcdStore returns a new etcd-backed Store.
-func NewEtcdStore(config *config.EtcdStoreConfig) (Store, error) {
+func NewEtcdStore(config *config.EtcdStoreConfig, logger *zap.Logger) (Store, error) {
 	cfg := etcd.Config{
 		Endpoints:   config.Endpoints,
 		Password:    config.Password,
@@ -43,7 +43,7 @@ func NewEtcdStore(config *config.EtcdStoreConfig) (Store, error) {
 	client.Lease = namespace.NewLease(client.Lease, etcdStoreNamespace+config.Prefix)
 	return &etcdStore{
 		client: client,
-		logger: config.Logger,
+		logger: logger.Sugar(),
 	}, nil
 }
 

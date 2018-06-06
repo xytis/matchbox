@@ -5,6 +5,8 @@ import (
 	"io"
 	"net/http"
 	"text/template"
+
+	"go.uber.org/zap"
 )
 
 const (
@@ -17,7 +19,7 @@ const (
 func (s *Server) renderJSON(w http.ResponseWriter, v interface{}) {
 	js, err := json.Marshal(v)
 	if err != nil {
-		s.logger.Errorf("error JSON encoding: %v", err)
+		s.logger.Error("JSON encoding failed", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -29,7 +31,7 @@ func (s *Server) writeJSON(w http.ResponseWriter, data []byte) {
 	w.Header().Set(contentType, jsonContentType)
 	_, err := w.Write(data)
 	if err != nil {
-		s.logger.Errorf("error writing to response: %v", err)
+		s.logger.Error("error writing to response", zap.Error(err))
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 }
@@ -49,13 +51,13 @@ func (s *Server) renderTemplate(w io.Writer, data interface{}, contents ...strin
 	for _, content := range contents {
 		tmpl, err = tmpl.Parse(content)
 		if err != nil {
-			s.logger.Errorf("error parsing template: %v", err)
+			s.logger.Error("error parsing template", zap.Error(err))
 			return err
 		}
 	}
 	err = tmpl.Execute(w, data)
 	if err != nil {
-		s.logger.Errorf("error rendering template: %v", err)
+		s.logger.Error("error rendering template", zap.Error(err))
 		return err
 	}
 	return nil

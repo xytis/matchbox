@@ -1,9 +1,11 @@
 package storage
 
 import (
-	"errors"
-
+	"github.com/coreos/matchbox/matchbox/storage/config"
 	"github.com/coreos/matchbox/matchbox/storage/storagepb"
+
+	"github.com/pkg/errors"
+	"go.uber.org/zap"
 )
 
 // Storage errors
@@ -41,4 +43,24 @@ type Store interface {
 	TemplateDelete(id string) error
 	// TemplateList lists all templates
 	TemplateList() ([]*storagepb.Template, error)
+}
+
+// NewStore builds an appropriate store from given configuration
+func NewStore(cfg *config.Config, logger *zap.Logger) (Store, error) {
+	switch cfg.StoreBackend {
+	case config.StoreBackendFile:
+		store, err := NewFileStore(cfg.FileStoreConfig, logger)
+		if err != nil {
+			return nil, errors.Wrap(err, "failure creating filesystem store")
+		}
+		return store, nil
+	case config.StoreBackendEtcd:
+		store, err := NewEtcdStore(cfg.EtcdStoreConfig, logger)
+		if err != nil {
+			return nil, errors.Wrap(err, "failure creating etcd store")
+		}
+		return store, nil
+	default:
+		return nil, errors.New("unsuported storage engine")
+	}
 }

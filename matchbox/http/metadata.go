@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 const plainContentType = "plain/text"
@@ -18,29 +18,23 @@ func (s *Server) metadataHandler() http.Handler {
 		ctx := req.Context()
 		group, err := groupFromContext(ctx)
 		if err != nil {
-			s.logger.WithFields(logrus.Fields{
-				"labels": labelsFromRequest(nil, req),
-			}).Infof("No matching group")
 			http.NotFound(w, req)
 			return
 		}
 
-		// match was successful
-		s.logger.WithFields(logrus.Fields{
-			"labels": labelsFromRequest(nil, req),
-			"group":  group.Id,
-		}).Debug("Matched group metadata")
-
 		// collect data for rendering
-		data, err := collectVariables(req, group)
+		metadata, err := mergeMetadata(ctx)
 		if err != nil {
-			s.logger.Errorf("error collecting variables: %v", err)
+			s.logger.Info("metadata not merged",
+				zap.Error(err),
+				zap.String("group", group.Id),
+			)
 			http.NotFound(w, req)
 			return
 		}
 
 		w.Header().Set(contentType, plainContentType)
-		renderAsEnvFile(w, "", data)
+		renderAsEnvFile(w, "", metadata)
 	}
 	return http.HandlerFunc(fn)
 }

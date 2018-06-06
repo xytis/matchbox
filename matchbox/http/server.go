@@ -4,17 +4,17 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gorilla/mux"
-	"github.com/sirupsen/logrus"
-
 	"github.com/coreos/matchbox/matchbox/server"
 	"github.com/coreos/matchbox/matchbox/sign"
+
+	"github.com/gorilla/mux"
+	"go.uber.org/zap"
 )
 
 // Config configures a Server.
 type Config struct {
 	Core   server.Server
-	Logger *logrus.Logger
+	Logger *zap.Logger
 	// Path to static assets
 	AssetsPath string
 	// config signers (.sig and .asc)
@@ -25,7 +25,7 @@ type Config struct {
 // Server serves boot and provisioning configs to machines via HTTP.
 type Server struct {
 	core          server.Server
-	logger        *logrus.Logger
+	logger        *zap.Logger
 	assetsPath    string
 	signer        sign.Signer
 	armoredSigner sign.Signer

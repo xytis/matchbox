@@ -8,6 +8,8 @@ import (
 
 	"github.com/coreos/matchbox/matchbox/server"
 	pb "github.com/coreos/matchbox/matchbox/server/serverpb"
+
+	"go.uber.org/zap"
 )
 
 // homeHandler shows the server name for rooted requests. Otherwise, a 404 is
@@ -42,7 +44,7 @@ func stripSuffix(suffix string, h http.Handler) http.Handler {
 // logRequest logs HTTP requests.
 func (s *Server) logRequest(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, req *http.Request) {
-		s.logger.Infof("HTTP %s %v", req.Method, req.URL)
+		s.logger.Info("HTTP", zap.String("method", req.Method), zap.String("url", req.URL.String()))
 		next.ServeHTTP(w, req)
 	}
 	return http.HandlerFunc(fn)

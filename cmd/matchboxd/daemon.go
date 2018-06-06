@@ -13,9 +13,11 @@ import (
 	web "github.com/coreos/matchbox/matchbox/http"
 	"github.com/coreos/matchbox/matchbox/rpc"
 	"github.com/coreos/matchbox/matchbox/server"
+	"github.com/coreos/matchbox/matchbox/storage"
 	"github.com/coreos/matchbox/matchbox/tlsutil"
 
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
@@ -73,23 +75,21 @@ func (c *DaemonConfig) Validate() error {
 	return nil
 }
 
-func runDaemon(opts *daemonOptions) error {
-	daemon := NewDaemon()
-	return daemon.start(opts)
-}
-
 // Daemon groups all underlying components and holds their state
 // TODO: it should react to reload and other system events
 type Daemon struct {
 	core server.Server
+
 	web  *web.Server
 	http *http.Server
 	rpc  *grpc.Server
+
+	logger *zap.Logger
 }
 
 // NewDaemon returns a daemon
-func NewDaemon() *Daemon {
-	return &Daemon{}
+func NewDaemon(logger *zap.Logger) *Daemon {
+	return &Daemon{logger: logger}
 }
 
 type keepalive struct {
@@ -107,7 +107,12 @@ func (ln keepalive) Accept() (net.Conn, error) {
 }
 
 func (d *Daemon) start(opts *daemonOptions) error {
-	d.core = server.NewServer(opts.serverConfig)
+	store, err := storage.NewStore(opts.storageConfig, d.logger)
+	if err != nil {
+		return errors.Wrap(err, "failed to create storage")
+	}
+
+	d.core = server.NewServer(store)
 
 	cfg := opts.daemonConfig
 
@@ -149,7 +154,7 @@ func (d *Daemon) start(opts *daemonOptions) error {
 
 	d.web = web.NewServer(&web.Config{
 		Core:   d.core,
-		Logger: opts.logger,
+		Logger: d.logger,
 	})
 
 	if cfg.RPCAddress != "" {
@@ -157,7 +162,8 @@ func (d *Daemon) start(opts *daemonOptions) error {
 		if err != nil {
 			return err
 		}
-		opts.logger.Infof("rpc: listening on %s", cfg.RPCAddress)
+		//TODO: Consider altering listener to include keepalive on connection and other things
+		d.logger.Sugar().Infof("rpc: listening on %s", cfg.RPCAddress)
 		go d.rpc.Serve(listen)
 		defer d.rpc.Stop()
 	}
@@ -165,9 +171,9 @@ func (d *Daemon) start(opts *daemonOptions) error {
 	if cfg.HTTPAddress != "" {
 		d.http = &http.Server{Addr: cfg.HTTPAddress, Handler: d.web.HTTPHandler()}
 		go func() {
-			opts.logger.Infof("http: listening on %s", cfg.HTTPAddress)
+			d.logger.Sugar().Infof("http: listening on %s", cfg.HTTPAddress)
 			if err := d.http.ListenAndServe(); err != nil {
-				opts.logger.Fatal(err)
+				d.logger.Sugar().Fatal(err)
 			}
 		}()
 	}
@@ -180,7 +186,7 @@ func (d *Daemon) start(opts *daemonOptions) error {
 	go func() {
 		<-sigs
 		// Should handle stuff here
-		opts.logger.Infoln("shutting down")
+		d.logger.Sugar().Infof("shutting down")
 		d.http.Shutdown(context.Background())
 		done <- true
 	}()

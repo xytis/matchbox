@@ -7,21 +7,26 @@ import (
 	"github.com/coreos/matchbox/matchbox/cli"
 	"github.com/coreos/matchbox/matchbox/version"
 
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
-var (
-	// Defaults to info logging
-	log = logrus.New()
-)
+type pLevel struct {
+	zapcore.Level
+}
+
+func (*pLevel) Type() string {
+	return "string"
+}
 
 func newDaemonCommand() *cobra.Command {
 	var flags *pflag.FlagSet
 	var cfg *viper.Viper
-	opts := newDaemonOptions(log)
+	level := &pLevel{0}
+	opts := newDaemonOptions()
 
 	cmd := &cobra.Command{
 		Use:           "matchboxd [OPTIONS]",
@@ -30,8 +35,15 @@ func newDaemonCommand() *cobra.Command {
 		SilenceErrors: true,
 		Args:          cli.NoArgsRequired,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			logger := zap.New(zapcore.NewCore(
+				zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()),
+				zapcore.Lock(os.Stdout),
+				zap.NewAtomicLevelAt(level.Level),
+			))
+
 			opts.ExtractConfig(cfg)
-			return runDaemon(opts)
+			d := NewDaemon(logger)
+			return d.start(opts)
 		},
 		DisableFlagsInUseLine: true,
 		Version:               fmt.Sprintf("%s, build %s", version.Version, version.GitCommit),
@@ -41,6 +53,8 @@ func newDaemonCommand() *cobra.Command {
 	cfg = viper.New()
 
 	cmd.PersistentFlags().BoolP("help", "h", false, "Print usage")
+
+	flags.VarP(level, "log-level", "l", `Set the logging level ("debug"|"info"|"warn"|"error"|"fatal")`)
 
 	flags.BoolP("version", "v", false, "Print version information and quit")
 	flags.String("config", "/etc/matchbox/matchboxd.yaml", "Matchboxd configuration file")

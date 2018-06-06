@@ -1,29 +1,28 @@
 package config
 
 import (
-	storage "github.com/coreos/matchbox/matchbox/storage/config"
-
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 )
 
 const (
+	//StoreBackendFile defines a string selector for filesystem backed store
 	StoreBackendFile = "filesystem"
+	//StoreBackendEtcd defines a string selector for etcd backed store
 	StoreBackendEtcd = "etcd"
 )
 
 // Config configures a server implementation.
 type Config struct {
 	StoreBackend    string
-	EtcdStoreConfig *storage.EtcdStoreConfig
-	FileStoreConfig *storage.FileStoreConfig
+	EtcdStoreConfig *EtcdStoreConfig
+	FileStoreConfig *FileStoreConfig
 }
 
 // NewConfig creates an empty config
-func NewConfig(logger *logrus.Logger) *Config {
+func NewConfig() *Config {
 	return &Config{
-		EtcdStoreConfig: storage.NewEtcdStoreConfig(logger),
-		FileStoreConfig: storage.NewFileStoreConfig(logger),
+		EtcdStoreConfig: NewEtcdStoreConfig(),
+		FileStoreConfig: NewFileStoreConfig(),
 	}
 }
 

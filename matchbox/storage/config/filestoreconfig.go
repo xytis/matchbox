@@ -4,21 +4,16 @@ import (
 	"os"
 
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 )
 
 // FileStoreConfig stores filesystem store configuration
 type FileStoreConfig struct {
 	Root string
-
-	Logger *logrus.Logger
 }
 
 // NewFileStoreConfig creates an empty config
-func NewFileStoreConfig(logger *logrus.Logger) *FileStoreConfig {
-	return &FileStoreConfig{
-		Logger: logger,
-	}
+func NewFileStoreConfig() *FileStoreConfig {
+	return &FileStoreConfig{}
 }
 
 // Validate checks if given config is viable

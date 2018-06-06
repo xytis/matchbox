@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 
 	"github.com/coreos/matchbox/matchbox/storage/storagepb"
 )
@@ -35,7 +35,7 @@ func collectVariables(req *http.Request, group *storagepb.Group) (map[string]int
 }
 
 // labelsFromRequest returns request query parameters.
-func labelsFromRequest(logger *logrus.Logger, req *http.Request) map[string]string {
+func labelsFromRequest(logger *zap.Logger, req *http.Request) map[string]string {
 	values := req.URL.Query()
 	labels := map[string]string{}
 	for key := range values {
@@ -46,9 +46,10 @@ func labelsFromRequest(logger *logrus.Logger, req *http.Request) map[string]stri
 				labels[key] = hw.String()
 			} else {
 				if logger != nil {
-					logger.WithFields(logrus.Fields{
-						"mac": values.Get(key),
-					}).Warningf("ignoring unparseable MAC address: %v", err)
+					logger.Warn("ignoring unparseable MAC address",
+						zap.Error(err),
+						zap.String("mac", values.Get(key)),
+					)
 				}
 			}
 		default:

@@ -6,7 +6,6 @@ import (
 	"github.com/coreos/matchbox/matchbox/tlsutil"
 
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 )
 
 // EtcdStoreConfig initializes a etcdStore.
@@ -21,23 +20,15 @@ type EtcdStoreConfig struct {
 	TLSInsecureSkipVerify bool
 	TLSKeyFile            string
 	TLSServerName         string
-
-	Logger *logrus.Logger
 }
 
 // NewEtcdStoreConfig creates an empty config
-func NewEtcdStoreConfig(logger *logrus.Logger) *EtcdStoreConfig {
-	return &EtcdStoreConfig{
-		Logger: logger,
-	}
+func NewEtcdStoreConfig() *EtcdStoreConfig {
+	return &EtcdStoreConfig{}
 }
 
 // Validate checks if given config is viable
 func (c *EtcdStoreConfig) Validate() error {
-	if c.Logger == nil {
-		return errors.New("missing logger value")
-	}
-
 	if len(c.Endpoints) == 0 {
 		return errors.New("missing etcd endpoints slice")
 	}
