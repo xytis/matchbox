@@ -10,27 +10,27 @@ import (
 	pb "github.com/coreos/matchbox/matchbox/server/serverpb"
 )
 
-// NewProfileListCommand creates groups
-func NewProfileListCommand() *cobra.Command {
+// NewTemplateListCommand creates groups
+func NewTemplateListCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
-		Short: "List machine profiles",
-		Long:  `List machine profiles`,
+		Short: "List templates",
+		Long:  `List templates`,
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 
 			tw := newTabWriter(os.Stdout)
 			defer tw.Flush()
 			// legend
-			fmt.Fprintf(tw, "ID\tPROFILE NAME\t\n")
+			fmt.Fprintf(tw, "ID\tTEMPLATE NAME\t\n")
 
 			client := mustClientFromCmd(cmd)
-			resp, err := client.Profiles.ProfileList(context.TODO(), &pb.ProfileListRequest{})
+			resp, err := client.Templates.TemplateList(context.TODO(), &pb.TemplateListRequest{})
 			if err != nil {
 				return
 			}
-			for _, profile := range resp.Profiles {
-				fmt.Fprintf(tw, "%s\t%s\n", profile.Id, profile.Name)
+			for _, template := range resp.Templates {
+				fmt.Fprintf(tw, "%s\t%s\n", template.Id, template.Name)
 			}
 		},
 	}

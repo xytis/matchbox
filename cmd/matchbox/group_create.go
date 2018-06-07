@@ -12,33 +12,55 @@ import (
 
 // NewGroupCreateCommand creates groups
 func NewGroupCreateCommand() *cobra.Command {
-	var filename string
 	cmd := &cobra.Command{
-		Use:   "create --file FILENAME",
+		Use:   "create",
 		Short: "Create a machine group",
 		Long:  `Create a machine group`,
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
-			if len(filename) == 0 {
-				cmd.Help()
-				return
-			}
 			client := mustClientFromCmd(cmd)
-			group, err := loadGroup(filename)
-			if err != nil {
-				exitWithError(ExitError, err)
-			}
-			req := &pb.GroupPutRequest{Group: group}
-			_, err = client.Groups.GroupPut(context.TODO(), req)
-			if err != nil {
-				exitWithError(ExitError, err)
+			flags := cmd.Flags()
+			if filename, _ := flags.GetString("filename"); filename != "" {
+				group, err := loadGroup(filename)
+				if err != nil {
+					exitWithError(ExitError, err)
+				}
+				req := &pb.GroupPutRequest{Group: group}
+				_, err = client.Groups.GroupPut(context.TODO(), req)
+				if err != nil {
+					exitWithError(ExitError, err)
+				}
+			} else if id, _ := flags.GetString("id"); id != "" {
+				name, _ := flags.GetString("name")
+				profile, _ := flags.GetString("profile")
+				selectors, _ := flags.GetStringSlice("selectors")
+				meta, _ := flags.GetString("metadata")
+				group := &storagepb.Group{
+					Id:       id,
+					Name:     name,
+					Profile:  profile,
+					Selector: stringSliceToMap(selectors),
+					Metadata: []byte(meta),
+				}
+				req := &pb.GroupPutRequest{Group: group}
+				_, err := client.Groups.GroupPut(context.TODO(), req)
+				if err != nil {
+					exitWithError(ExitError, err)
+				}
+			} else {
+				cmd.Help()
 			}
 		},
 	}
 
-	cmd.Flags().StringVarP(&filename, "filename", "f", "", "filename to use to create a Group")
-	cmd.MarkFlagRequired("filename")
+	cmd.Flags().StringP("filename", "f", "", "filename to use to create a Group")
 	cmd.MarkFlagFilename("filename", "json")
+
+	cmd.Flags().String("id", "", "Group ID")
+	cmd.Flags().String("name", "", "Group name")
+	cmd.Flags().String("profile", "", "Profile asigned to group")
+	cmd.Flags().StringSlice("selectors", []string{}, "Selectors for group (key=value)")
+	cmd.Flags().String("metadata", "", "Group metadata")
 
 	return cmd
 }

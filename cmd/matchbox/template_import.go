@@ -16,9 +16,9 @@ func NewTemplateImportCommand() *cobra.Command {
 	var filename string
 	var templateID string
 	cmd := &cobra.Command{
-		Use:   "create --file FILENAME",
-		Short: "Create a template",
-		Long:  `Create a template`,
+		Use:   "import --id ID --file FILENAME",
+		Short: "Import a template",
+		Long:  `Import a template from raw file`,
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			client := mustClientFromCmd(cmd)

@@ -14,15 +14,11 @@ import (
 func NewTemplateCreateCommand() *cobra.Command {
 	var filename string
 	cmd := &cobra.Command{
-		Use:   "create --file FILENAME",
+		Use:   "create",
 		Short: "Create a template",
 		Long:  `Create a template`,
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
-			if len(filename) == 0 {
-				cmd.Help()
-				return
-			}
 			client := mustClientFromCmd(cmd)
 			template, err := loadTemplate(filename)
 			if err != nil {

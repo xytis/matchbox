@@ -19,10 +19,6 @@ func NewProfileCreateCommand() *cobra.Command {
 		Long:  `Create a machine profile`,
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
-			if len(filename) == 0 {
-				cmd.Help()
-				return
-			}
 			client := mustClientFromCmd(cmd)
 			profile, err := loadProfile(filename)
 			if err != nil {

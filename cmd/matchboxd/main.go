@@ -39,7 +39,7 @@ func newDaemonCommand() *cobra.Command {
 			return d.start(opts)
 		},
 		DisableFlagsInUseLine: true,
-		Version:               fmt.Sprintf("server: version", version.Version),
+		Version:               version.Version,
 	}
 
 	flags = cmd.Flags()

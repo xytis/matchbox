@@ -13,8 +13,8 @@ func NewTemplateCommand() *cobra.Command {
 	}
 	cmd.AddCommand(NewTemplateImportCommand())
 	cmd.AddCommand(NewTemplateCreateCommand())
-	//cmd.AddCommand(NewTemplateDescribeCommand())
-	//cmd.AddCommand(NewTemplateListCommand())
+	cmd.AddCommand(NewTemplateDescribeCommand())
+	cmd.AddCommand(NewTemplateListCommand())
 
 	return cmd
 }

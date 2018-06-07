@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/coreos/matchbox/matchbox/client"
 	"github.com/coreos/matchbox/matchbox/tlsutil"
@@ -80,4 +81,16 @@ func mustClientFromCmd(cmd *cobra.Command) *client.Client {
 		exitWithError(ExitBadConnection, err)
 	}
 	return client
+}
+
+func stringSliceToMap(slice []string) map[string]string {
+	result := make(map[string]string)
+	for _, s := range slice {
+		kv := strings.SplitN(s, "=", 2)
+		if len(kv) < 2 {
+			kv = append(kv, "")
+		}
+		result[kv[0]] = kv[1]
+	}
+	return result
 }

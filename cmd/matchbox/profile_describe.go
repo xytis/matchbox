@@ -16,12 +16,8 @@ func NewProfileDescribeCommand() *cobra.Command {
 		Use:   "describe PROFILE_ID",
 		Short: "Describe a machine profile",
 		Long:  `Describe a machine profile`,
+		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			if len(args) != 1 {
-				cmd.Help()
-				return
-			}
-
 			tw := newTabWriter(os.Stdout)
 			defer tw.Flush()
 			// legend

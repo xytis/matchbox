@@ -16,6 +16,7 @@ func NewGroupListCommand() *cobra.Command {
 		Use:   "list",
 		Short: "List machine groups",
 		Long:  `List machine groups`,
+		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			tw := newTabWriter(os.Stdout)
 			defer tw.Flush()
