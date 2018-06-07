@@ -13,6 +13,7 @@ import (
 	web "github.com/coreos/matchbox/matchbox/http"
 	"github.com/coreos/matchbox/matchbox/rpc"
 	"github.com/coreos/matchbox/matchbox/server"
+	"github.com/coreos/matchbox/matchbox/sign"
 	"github.com/coreos/matchbox/matchbox/storage"
 	"github.com/coreos/matchbox/matchbox/tlsutil"
 
@@ -65,6 +66,11 @@ func (c *DaemonConfig) Validate() error {
 			if _, err := tlsutil.NewCertPool([]string{c.TLSClientCAFile}); err != nil {
 				return err
 			}
+		}
+	}
+	if c.SignatureKeyring != "" {
+		if _, err := sign.LoadGPGEntity(c.SignatureKeyring, c.SignaturePassphase); err != nil {
+			return errors.Wrap(err, "failed to create signer")
 		}
 	}
 	if c.AssetsDir != "" {
@@ -152,10 +158,18 @@ func (d *Daemon) start(opts *daemonOptions) error {
 		TLS:  tc,
 	})
 
-	d.web = web.NewServer(&web.Config{
+	webcfg := &web.Config{
 		Core:   d.core,
 		Logger: d.logger,
-	})
+	}
+
+	if cfg.SignatureKeyring != "" {
+		gpg, _ := sign.LoadGPGEntity(cfg.SignatureKeyring, cfg.SignaturePassphase)
+		webcfg.Signer = sign.NewGPGSigner(gpg)
+		webcfg.ArmoredSigner = sign.NewArmoredGPGSigner(gpg)
+	}
+
+	d.web = web.NewServer(webcfg)
 
 	if cfg.RPCAddress != "" {
 		listen, err := net.Listen("tcp", cfg.RPCAddress)

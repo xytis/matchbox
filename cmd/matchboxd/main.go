@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/coreos/matchbox/matchbox/version"
 
@@ -56,6 +57,7 @@ func newDaemonCommand() *cobra.Command {
 
 	cfg.SetConfigName("matchboxd")
 	cfg.SetEnvPrefix("matchboxd")
+	cfg.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 	cfg.AutomaticEnv()
 	cfg.BindPFlags(flags)
 	cfg.SetConfigFile(cfg.GetString("config"))

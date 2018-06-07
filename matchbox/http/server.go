@@ -2,7 +2,6 @@ package http
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/coreos/matchbox/matchbox/server"
 	"github.com/coreos/matchbox/matchbox/sign"
@@ -57,11 +56,12 @@ func (s *Server) HTTPHandler() http.Handler {
 	// Signature Handlers
 	r.Use(func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, req *http.Request) {
-			if s.signer != nil && strings.HasSuffix(req.URL.Path, ".sig") {
-				h := stripSuffix(".sig", sign.SignatureHandler(s.signer, next))
+			vars := mux.Vars(req)
+			if s.signer != nil && vars["signature"] == ".sig" {
+				h := sign.SignatureHandler(s.signer, next)
 				h.ServeHTTP(w, req)
-			} else if s.armoredSigner != nil && strings.HasSuffix(req.URL.Path, ".asc") {
-				h := stripSuffix(".asc", sign.SignatureHandler(s.armoredSigner, next))
+			} else if s.armoredSigner != nil && vars["signature"] == ".asc" {
+				h := sign.SignatureHandler(s.armoredSigner, next)
 				h.ServeHTTP(w, req)
 			} else {
 				next.ServeHTTP(w, req)
@@ -69,20 +69,21 @@ func (s *Server) HTTPHandler() http.Handler {
 		}
 		return http.HandlerFunc(fn)
 	})
+	signature := "{signature:(?:\\.sig|\\.asc)?}"
 	// matchbox version
 	r.Handle("/", homeHandler())
 	// Boot via GRUB
-	r.Handle("/grub", s.grubHandler())
+	r.Handle("/grub"+signature, s.grubHandler())
 	// Boot via iPXE
-	r.Handle("/boot.ipxe", ipxeInspect())
-	r.Handle("/boot.ipxe.0", ipxeInspect())
-	r.Handle("/ipxe", s.ipxeHandler())
+	r.Handle("/boot.ipxe"+signature, ipxeInspect())
+	r.Handle("/boot.ipxe.0"+signature, ipxeInspect())
+	r.Handle("/ipxe"+signature, s.ipxeHandler())
 	// Ignition Config
-	r.Handle("/ignition", s.ignitionHandler())
+	r.Handle("/ignition"+signature, s.ignitionHandler())
 	// Template
-	r.Handle("/template", s.templateHandler())
+	r.Handle("/template"+signature, s.templateHandler())
 	// Metadata
-	r.Handle("/metadata", s.metadataHandler())
+	r.Handle("/metadata"+signature, s.metadataHandler())
 
 	// kernel, initrd, and TLS assets
 	if s.assetsPath != "" {
