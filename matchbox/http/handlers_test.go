@@ -6,8 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	logtest "github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 
 	"github.com/coreos/matchbox/matchbox/server"
 	fake "github.com/coreos/matchbox/matchbox/storage/testfakes"
@@ -17,9 +17,8 @@ func TestSelectGroup(t *testing.T) {
 	store := fake.NewFixedStore()
 	store.Groups[fake.Group.Id] = fake.Group
 
-	logger, _ := logtest.NewNullLogger()
-	srv := NewServer(&Config{Logger: logger})
-	c := server.NewServer(&server.Config{Store: store})
+	srv := NewServer(&Config{Logger: zap.NewNop()})
+	c := server.NewServer(store)
 	next := func(w http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()
 		group, err := groupFromContext(ctx)
@@ -43,9 +42,8 @@ func TestSelectProfile(t *testing.T) {
 	store.Groups[fake.Group.Id] = fake.Group
 	store.Profiles[fake.Profile.Id] = fake.Profile
 
-	logger, _ := logtest.NewNullLogger()
-	srv := NewServer(&Config{Logger: logger})
-	c := server.NewServer(&server.Config{Store: store})
+	srv := NewServer(&Config{Logger: zap.NewNop()})
+	c := server.NewServer(store)
 	next := func(w http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()
 		profile, err := profileFromContext(ctx)

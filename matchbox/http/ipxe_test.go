@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"context"
-	logtest "github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 
 	"github.com/coreos/matchbox/matchbox/server"
 	"github.com/coreos/matchbox/matchbox/storage/storagepb"
@@ -24,9 +24,8 @@ func TestIPXEInspect(t *testing.T) {
 }
 
 func TestIPXEHandler(t *testing.T) {
-	logger, _ := logtest.NewNullLogger()
-	core := server.NewServer(&server.Config{Store: fake.NewFixedStore()})
-	srv := NewServer(&Config{Logger: logger, Core: core})
+	core := server.NewServer(fake.NewFixedStore())
+	srv := NewServer(&Config{Logger: zap.NewNop(), Core: core})
 	h := srv.ipxeHandler()
 	ctx := createFakeContext(context.Background(), map[string]string{}, fake.Profile, fake.Group)
 	w := httptest.NewRecorder()
@@ -45,9 +44,8 @@ boot
 }
 
 func TestIPXEHandler_MissingCtxProfile(t *testing.T) {
-	logger, _ := logtest.NewNullLogger()
-	core := server.NewServer(&server.Config{Store: fake.NewFixedStore()})
-	srv := NewServer(&Config{Logger: logger, Core: core})
+	core := server.NewServer(fake.NewFixedStore())
+	srv := NewServer(&Config{Logger: zap.NewNop(), Core: core})
 	h := srv.ipxeHandler()
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/", nil)
@@ -56,9 +54,8 @@ func TestIPXEHandler_MissingCtxProfile(t *testing.T) {
 }
 
 func TestIPXEHandler_RenderTemplateError(t *testing.T) {
-	logger, _ := logtest.NewNullLogger()
-	core := server.NewServer(&server.Config{Store: fake.NewFixedStore()})
-	srv := NewServer(&Config{Logger: logger, Core: core})
+	core := server.NewServer(fake.NewFixedStore())
+	srv := NewServer(&Config{Logger: zap.NewNop(), Core: core})
 	h := srv.ipxeHandler()
 	//Profile with missing metadata produces template render error
 	ctx := createFakeContext(context.Background(), map[string]string{}, &storagepb.Profile{Id: fake.Profile.Id}, fake.Group)
@@ -69,9 +66,8 @@ func TestIPXEHandler_RenderTemplateError(t *testing.T) {
 }
 
 func TestIPXEHandler_WriteError(t *testing.T) {
-	logger, _ := logtest.NewNullLogger()
-	core := server.NewServer(&server.Config{Store: fake.NewFixedStore()})
-	srv := NewServer(&Config{Logger: logger, Core: core})
+	core := server.NewServer(fake.NewFixedStore())
+	srv := NewServer(&Config{Logger: zap.NewNop(), Core: core})
 	h := srv.ipxeHandler()
 	ctx := createFakeContext(context.Background(), map[string]string{}, fake.Profile, fake.Group)
 	w := NewUnwriteableResponseWriter()

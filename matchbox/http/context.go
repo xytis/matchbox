@@ -69,7 +69,6 @@ func mergeMetadata(ctx context.Context) (map[string]interface{}, error) {
 	var errors error
 	if group, err := groupFromContext(ctx); err == nil {
 		if rg, err := group.ToRichGroup(); err == nil {
-			metadata = merge.Merge(metadata, rg.Selector).(map[string]interface{})
 			metadata = merge.Merge(metadata, rg.Metadata).(map[string]interface{})
 		} else {
 			errors = multierror.Append(errors, err)
@@ -83,10 +82,10 @@ func mergeMetadata(ctx context.Context) (map[string]interface{}, error) {
 		}
 	}
 	if labels, err := labelsFromContext(ctx); err == nil {
-		if submap, found := metadata["labels"]; found {
-			metadata["labels"] = merge.Merge(submap, labels)
+		if submap, found := metadata["label"]; found {
+			metadata["label"] = merge.Merge(submap, labels)
 		} else {
-			metadata["labels"] = merge.Merge(map[string]string{}, labels)
+			metadata["label"] = merge.Merge(map[string]string{}, labels)
 		}
 	}
 	return metadata, errors

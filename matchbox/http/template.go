@@ -24,7 +24,7 @@ func (s *Server) templateHandler() http.Handler {
 			return
 		}
 
-		group, err := groupFromContext(ctx)
+		_, err := groupFromContext(ctx)
 		if err != nil {
 			s.logger.Info("group not matched",
 				zap.String("labels", fmt.Sprintf("%v", labels)),
@@ -57,7 +57,6 @@ func (s *Server) templateHandler() http.Handler {
 			s.logger.Info("metadata not merged",
 				zap.Error(err),
 				zap.String("labels", fmt.Sprintf("%v", labels)),
-				zap.String("group", group.Id),
 				zap.String("profile", profile.Id),
 			)
 		}
@@ -67,7 +66,6 @@ func (s *Server) templateHandler() http.Handler {
 			s.logger.Info("template not found",
 				zap.String("template", templateID),
 				zap.String("labels", fmt.Sprintf("%v", labels)),
-				zap.String("group", group.Id),
 				zap.String("profile", profile.Id),
 			)
 			http.NotFound(w, req)

@@ -16,7 +16,16 @@ const plainContentType = "plain/text"
 func (s *Server) metadataHandler() http.Handler {
 	fn := func(w http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()
-		group, err := groupFromContext(ctx)
+
+		var err error
+
+		_, err = groupFromContext(ctx)
+		if err != nil {
+			http.NotFound(w, req)
+			return
+		}
+
+		_, err = profileFromContext(ctx)
 		if err != nil {
 			http.NotFound(w, req)
 			return
@@ -25,10 +34,7 @@ func (s *Server) metadataHandler() http.Handler {
 		// collect data for rendering
 		metadata, err := mergeMetadata(ctx)
 		if err != nil {
-			s.logger.Info("metadata not merged",
-				zap.Error(err),
-				zap.String("group", group.Id),
-			)
+			s.logger.Warn("metadata not merged", zap.Error(err))
 			http.NotFound(w, req)
 			return
 		}

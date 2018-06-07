@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"context"
-	logtest "github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 
 	"github.com/coreos/matchbox/matchbox/storage/storagepb"
 )
@@ -18,14 +18,27 @@ func TestMetadataHandler(t *testing.T) {
 	group := &storagepb.Group{
 		Id:       "test-group",
 		Selector: map[string]string{"mac": "52:54:00:a1:9c:ae"},
-		Metadata: []byte(`{"meta":"data", "etcd":{"name":"node1"},"some":{"nested":{"data":"some-value"}}}`),
+		Metadata: []byte(`{"meta":"group-data", "some":{"nested":{"data":"some-value"}}}`),
 	}
-	logger, _ := logtest.NewNullLogger()
-	srv := NewServer(&Config{Logger: logger})
+
+	profile := &storagepb.Profile{
+		Id:       "test-profile",
+		Metadata: []byte(`{"meta":"profile-data", "some": {"nested": {"override": "value"}}}`),
+	}
+
+	labels := map[string]string{
+		"custom": "value",
+		"some":   "not-override",
+	}
+
+	srv := NewServer(&Config{Logger: zap.NewNop()})
 	h := srv.metadataHandler()
-	ctx := withGroup(context.Background(), group)
+	ctx := context.Background()
+	ctx = withGroup(ctx, group)
+	ctx = withProfile(ctx, profile)
+	ctx = withLabels(ctx, labels)
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/?mac=52-54-00-a1-9c-ae&foo=bar&count=3&gate=true", nil)
+	req, _ := http.NewRequest("GET", "/", nil)
 	h.ServeHTTP(w, req.WithContext(ctx))
 	// assert that:
 	// - Group selectors, metadata, and query variables are formatted
@@ -33,18 +46,15 @@ func TestMetadataHandler(t *testing.T) {
 	// - key names are upper case
 	// - key/value pairs are newline separated
 	expectedLines := map[string]string{
-		// group metadata
-		"META":             "data",
-		"ETCD_NAME":        "node1",
-		"SOME_NESTED_DATA": "some-value",
+		// merged metadata
+		"META":                 "profile-data",
+		"SOME_NESTED_DATA":     "some-value",
+		"SOME_NESTED_OVERRIDE": "value",
 		// group selector
-		"MAC": "52:54:00:a1:9c:ae",
-		// request
-		"REQUEST_QUERY_MAC":   "52:54:00:a1:9c:ae",
-		"REQUEST_QUERY_FOO":   "bar",
-		"REQUEST_QUERY_COUNT": "3",
-		"REQUEST_QUERY_GATE":  "true",
-		"REQUEST_RAW_QUERY":   "mac=52-54-00-a1-9c-ae&foo=bar&count=3&gate=true",
+		//"MAC": "52:54:00:a1:9c:ae",
+		// labels
+		"LABEL_CUSTOM": "value",
+		"LABEL_SOME":   "not-override",
 	}
 	assert.Equal(t, http.StatusOK, w.Code)
 	// convert response (random order) to map (tests compare in order)
@@ -53,8 +63,7 @@ func TestMetadataHandler(t *testing.T) {
 }
 
 func TestMetadataHandler_MetadataEdgeCases(t *testing.T) {
-	logger, _ := logtest.NewNullLogger()
-	srv := NewServer(&Config{Logger: logger})
+	srv := NewServer(&Config{Logger: zap.NewNop()})
 	h := srv.metadataHandler()
 	// groups with different metadata
 	cases := []struct {
@@ -66,7 +75,10 @@ func TestMetadataHandler_MetadataEdgeCases(t *testing.T) {
 		{&storagepb.Group{Metadata: []byte(`{"no":false}`)}, "NO=false\n"},
 	}
 	for _, c := range cases {
-		ctx := withGroup(context.Background(), c.group)
+		ctx := context.Background()
+		ctx = withGroup(ctx, c.group)
+		ctx = withProfile(ctx, &storagepb.Profile{})
+
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("GET", "/", nil)
 		h.ServeHTTP(w, req.WithContext(ctx))
@@ -80,8 +92,7 @@ func TestMetadataHandler_MetadataEdgeCases(t *testing.T) {
 }
 
 func TestMetadataHandler_MissingCtxGroup(t *testing.T) {
-	logger, _ := logtest.NewNullLogger()
-	srv := NewServer(&Config{Logger: logger})
+	srv := NewServer(&Config{Logger: zap.NewNop()})
 	h := srv.metadataHandler()
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/", nil)

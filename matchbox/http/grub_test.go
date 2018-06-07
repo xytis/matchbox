@@ -6,17 +6,16 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	logtest "github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 
 	"github.com/coreos/matchbox/matchbox/server"
 	fake "github.com/coreos/matchbox/matchbox/storage/testfakes"
 )
 
 func TestGrubHandler(t *testing.T) {
-	logger, _ := logtest.NewNullLogger()
-	core := server.NewServer(&server.Config{Store: fake.NewFixedStore()})
-	srv := NewServer(&Config{Logger: logger, Core: core})
+	core := server.NewServer(fake.NewFixedStore())
+	srv := NewServer(&Config{Logger: zap.NewNop(), Core: core})
 	h := srv.grubHandler()
 
 	ctx := createFakeContext(context.Background(), map[string]string{}, fake.Profile, fake.Group)

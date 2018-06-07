@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"context"
-	logtest "github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 
 	"github.com/coreos/matchbox/matchbox/server"
 	"github.com/coreos/matchbox/matchbox/storage/storagepb"
@@ -23,9 +23,8 @@ func TestIgnitionHandler_V2JSON(t *testing.T) {
 	store := fake.NewFixedStore()
 	store.Templates[fake.Template.Id] = &storagepb.Template{Id: fake.Template.Id, Contents: []byte(content)}
 
-	logger, _ := logtest.NewNullLogger()
-	core := server.NewServer(&server.Config{Store: store})
-	srv := NewServer(&Config{Logger: logger, Core: core})
+	core := server.NewServer(store)
+	srv := NewServer(&Config{Logger: zap.NewNop(), Core: core})
 	h := srv.ignitionHandler()
 	ctx := createFakeContext(context.Background(), map[string]string{}, profile, fake.Group)
 	w := httptest.NewRecorder()
@@ -76,9 +75,8 @@ systemd:
 */
 
 func TestIgnitionHandler_MissingCtxProfile(t *testing.T) {
-	logger, _ := logtest.NewNullLogger()
-	core := server.NewServer(&server.Config{Store: fake.NewFixedStore()})
-	srv := NewServer(&Config{Logger: logger, Core: core})
+	core := server.NewServer(fake.NewFixedStore())
+	srv := NewServer(&Config{Logger: zap.NewNop(), Core: core})
 	h := srv.ignitionHandler()
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/", nil)
@@ -87,9 +85,8 @@ func TestIgnitionHandler_MissingCtxProfile(t *testing.T) {
 }
 
 func TestIgnitionHandler_MissingIgnitionConfig(t *testing.T) {
-	logger, _ := logtest.NewNullLogger()
-	core := server.NewServer(&server.Config{Store: fake.NewFixedStore()})
-	srv := NewServer(&Config{Logger: logger, Core: core})
+	core := server.NewServer(fake.NewFixedStore())
+	srv := NewServer(&Config{Logger: zap.NewNop(), Core: core})
 	h := srv.ignitionHandler()
 	ctx := withProfile(context.Background(), fake.Profile)
 	w := httptest.NewRecorder()
@@ -109,9 +106,8 @@ systemd:
 	store := fake.NewFixedStore()
 	store.Templates[fake.Template.Id] = &storagepb.Template{Id: fake.Template.Id, Contents: []byte(content)}
 
-	logger, _ := logtest.NewNullLogger()
-	core := server.NewServer(&server.Config{Store: store})
-	srv := NewServer(&Config{Logger: logger, Core: core})
+	core := server.NewServer(store)
+	srv := NewServer(&Config{Logger: zap.NewNop(), Core: core})
 	h := srv.ignitionHandler()
 	ctx := withGroup(context.Background(), fake.Group)
 	w := httptest.NewRecorder()

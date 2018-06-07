@@ -3,10 +3,11 @@ package storage
 import (
 	"testing"
 
-	etcd "github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/integration"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 
+	"github.com/coreos/matchbox/matchbox/storage/config"
 	"github.com/coreos/matchbox/matchbox/storage/storagepb"
 	fake "github.com/coreos/matchbox/matchbox/storage/testfakes"
 )
@@ -17,12 +18,10 @@ func TestEtcdClientCreation(t *testing.T) {
 
 	c := cluster.RandClient()
 
-	store, err := NewEtcdStore(&EtcdStoreConfig{
-		Config: etcd.Config{
-			Endpoints: c.Endpoints(),
-		},
-		Prefix: "test",
-	})
+	store, err := NewEtcdStore(&config.EtcdStoreConfig{
+		Endpoints: c.Endpoints(),
+		Prefix:    "test",
+	}, zap.NewNop())
 	assert.Nil(t, err)
 
 	err = store.TemplatePut(fake.Template)

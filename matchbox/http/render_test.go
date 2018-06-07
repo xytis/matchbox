@@ -6,13 +6,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	logtest "github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 )
 
 func TestRenderJSON(t *testing.T) {
-	logger, _ := logtest.NewNullLogger()
-	srv := NewServer(&Config{Logger: logger})
+	srv := NewServer(&Config{Logger: zap.NewNop()})
 	w := httptest.NewRecorder()
 	data := map[string][]string{
 		"a": []string{"b", "c"},
@@ -24,8 +23,7 @@ func TestRenderJSON(t *testing.T) {
 }
 
 func TestRenderJSON_EncodingError(t *testing.T) {
-	logger, _ := logtest.NewNullLogger()
-	srv := NewServer(&Config{Logger: logger})
+	srv := NewServer(&Config{Logger: zap.NewNop()})
 	w := httptest.NewRecorder()
 	// channels cannot be JSON encoded
 	srv.renderJSON(w, make(chan struct{}))
@@ -34,8 +32,7 @@ func TestRenderJSON_EncodingError(t *testing.T) {
 }
 
 func TestRenderJSON_EncodeError(t *testing.T) {
-	logger, _ := logtest.NewNullLogger()
-	srv := NewServer(&Config{Logger: logger})
+	srv := NewServer(&Config{Logger: zap.NewNop()})
 	w := httptest.NewRecorder()
 	// channels cannot be JSON encoded
 	srv.renderJSON(w, make(chan struct{}))
@@ -44,8 +41,7 @@ func TestRenderJSON_EncodeError(t *testing.T) {
 }
 
 func TestRenderJSON_WriteError(t *testing.T) {
-	logger, _ := logtest.NewNullLogger()
-	srv := NewServer(&Config{Logger: logger})
+	srv := NewServer(&Config{Logger: zap.NewNop()})
 	w := NewUnwriteableResponseWriter()
 	srv.renderJSON(w, map[string]string{"a": "b"})
 	assert.Equal(t, http.StatusInternalServerError, w.Code)

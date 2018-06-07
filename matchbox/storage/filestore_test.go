@@ -8,7 +8,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 
+	"github.com/coreos/matchbox/matchbox/storage/config"
 	"github.com/coreos/matchbox/matchbox/storage/storagepb"
 	fake "github.com/coreos/matchbox/matchbox/storage/testfakes"
 )
@@ -18,76 +20,39 @@ func TestFileStoreGroupCRUD(t *testing.T) {
 	assert.Nil(t, err)
 	defer os.RemoveAll(dir)
 
-	store := NewFileStore(&FileStoreConfig{Root: dir})
+	store, _ := NewFileStore(&config.FileStoreConfig{Root: dir}, zap.NewNop())
+
 	// assert that:
-	// - Group creation was successful
+	// - Group creation is successful
+	// - Multiple groups can be stored
 	// - Group can be retrieved by id
+	// - Group list can be retrieved
 	// - Group can be deleted by id
+	// - Non existing group query returns error
 	err = store.GroupPut(fake.Group)
 	assert.Nil(t, err)
 
+	err = store.GroupPut(fake.GroupNoMetadata)
+	assert.Nil(t, err)
+
 	group, err := store.GroupGet(fake.Group.Id)
 	assert.Nil(t, err)
 	assert.Equal(t, fake.Group, group)
 
-	err = store.GroupDelete(fake.Group.Id)
-	assert.Nil(t, err)
-	_, err = store.GroupGet(fake.Group.Id)
-	if assert.Error(t, err) {
-		assert.IsType(t, err, &os.PathError{})
-	}
-}
-
-func TestFileStoreGroupGet(t *testing.T) {
-	dir, err := setup(&fake.FixedStore{
-		Groups: map[string]*storagepb.Group{
-			fake.Group.Id:           fake.Group,
-			fake.GroupNoMetadata.Id: fake.GroupNoMetadata,
-		},
-	})
-	assert.Nil(t, err)
-	defer os.RemoveAll(dir)
-
-	store := NewFileStore(&FileStoreConfig{Root: dir})
-	// assert that:
-	// - Groups written to the store can be retrieved
-	group, err := store.GroupGet(fake.Group.Id)
-	assert.Nil(t, err)
-	assert.Equal(t, fake.Group, group)
-	group, err = store.GroupGet(fake.GroupNoMetadata.Id)
-	assert.Nil(t, err)
-	assert.Equal(t, fake.GroupNoMetadata, group)
-}
-
-func TestFileStoreGroupGet_NoGroup(t *testing.T) {
-	dir, err := setup(&fake.FixedStore{})
-	assert.Nil(t, err)
-	defer os.RemoveAll(dir)
-
-	store := NewFileStore(&FileStoreConfig{Root: dir})
-	_, err = store.GroupGet("no-such-group")
-	if assert.Error(t, err) {
-		assert.IsType(t, &os.PathError{}, err)
-	}
-}
-
-func TestFileStoreGroupList(t *testing.T) {
-	dir, err := setup(&fake.FixedStore{
-		Groups: map[string]*storagepb.Group{
-			fake.Group.Id:           fake.Group,
-			fake.GroupNoMetadata.Id: fake.GroupNoMetadata,
-		},
-	})
-	assert.Nil(t, err)
-	defer os.RemoveAll(dir)
-
-	store := NewFileStore(&FileStoreConfig{Root: dir})
 	groups, err := store.GroupList()
 	assert.Nil(t, err)
 	if assert.Equal(t, 2, len(groups)) {
 		assert.Contains(t, groups, fake.Group)
 		assert.Contains(t, groups, fake.GroupNoMetadata)
 		assert.NotContains(t, groups, &storagepb.Group{})
+	}
+
+	err = store.GroupDelete(fake.Group.Id)
+	assert.Nil(t, err)
+
+	_, err = store.GroupGet(fake.Group.Id)
+	if assert.Error(t, err) {
+		assert.Equal(t, err, ErrGroupNotFound)
 	}
 }
 
@@ -96,55 +61,39 @@ func TestFileStoreProfileCRUD(t *testing.T) {
 	assert.Nil(t, err)
 	defer os.RemoveAll(dir)
 
-	store := NewFileStore(&FileStoreConfig{Root: dir})
+	store, _ := NewFileStore(&config.FileStoreConfig{Root: dir}, zap.NewNop())
+
 	// assert that:
-	// - Profile creation was successful
-	// - Profile can be retrieved by id
-	// - Profile can be deleted by id
+	// - Group creation is successful
+	// - Multiple groups can be stored
+	// - Group can be retrieved by id
+	// - Group list can be retrieved
+	// - Group can be deleted by id
+	// - Non existing group query returns error
 	err = store.ProfilePut(fake.Profile)
 	assert.Nil(t, err)
 
+	err = store.ProfilePut(fake.ProfileNoConfig)
+	assert.Nil(t, err)
+
 	profile, err := store.ProfileGet(fake.Profile.Id)
 	assert.Nil(t, err)
 	assert.Equal(t, fake.Profile, profile)
+
+	profiles, err := store.ProfileList()
+	assert.Nil(t, err)
+	if assert.Equal(t, 2, len(profiles)) {
+		assert.Contains(t, profiles, fake.Profile)
+		assert.Contains(t, profiles, fake.ProfileNoConfig)
+		assert.NotContains(t, profiles, &storagepb.Group{})
+	}
 
 	err = store.ProfileDelete(fake.Profile.Id)
 	assert.Nil(t, err)
+
 	_, err = store.ProfileGet(fake.Profile.Id)
 	if assert.Error(t, err) {
-		assert.IsType(t, err, &os.PathError{})
-	}
-}
-
-func TestFileStoreProfileGet(t *testing.T) {
-	dir, err := setup(&fake.FixedStore{
-		Profiles: map[string]*storagepb.Profile{fake.Profile.Id: fake.Profile},
-	})
-	assert.Nil(t, err)
-	defer os.RemoveAll(dir)
-
-	store := NewFileStore(&FileStoreConfig{Root: dir})
-	profile, err := store.ProfileGet(fake.Profile.Id)
-	assert.Equal(t, fake.Profile, profile)
-	assert.Nil(t, err)
-	_, err = store.ProfileGet("no-such-profile")
-	if assert.Error(t, err) {
-		assert.IsType(t, &os.PathError{}, err)
-	}
-}
-
-func TestFileStoreProfileList(t *testing.T) {
-	dir, err := setup(&fake.FixedStore{
-		Profiles: map[string]*storagepb.Profile{fake.Profile.Id: fake.Profile},
-	})
-	assert.Nil(t, err)
-	defer os.RemoveAll(dir)
-
-	store := NewFileStore(&FileStoreConfig{Root: dir})
-	profiles, err := store.ProfileList()
-	assert.Nil(t, err)
-	if assert.Equal(t, 1, len(profiles)) {
-		assert.Equal(t, fake.Profile, profiles[0])
+		assert.Equal(t, err, ErrProfileNotFound)
 	}
 }
 
@@ -153,26 +102,24 @@ func TestFileStoreTemplateCRUD(t *testing.T) {
 	assert.Nil(t, err)
 	defer os.RemoveAll(dir)
 
-	store := NewFileStore(&FileStoreConfig{Root: dir})
+	store, _ := NewFileStore(&config.FileStoreConfig{Root: dir}, zap.NewNop())
+
 	// assert that:
-	// - Generic template creation was successful
-	// - Generic template can be retrieved by name
-	// - Generic template can be deleted by name
+	// - Ignition template creation was successful
+	// - Ignition template can be retrieved by name
+	// - Ignition template can be deleted by name
 	err = store.TemplatePut(fake.Template)
 	assert.Nil(t, err)
 
 	template, err := store.TemplateGet(fake.Template.Id)
 	assert.Nil(t, err)
-	assert.Equal(t, fake.Template, template)
-	assert.Equal(t, fake.Template.Id, template.Id)
-	assert.Equal(t, fake.Template.Name, template.Name)
 	assert.Equal(t, fake.Template.Contents, template.Contents)
 
 	err = store.TemplateDelete(fake.Template.Id)
 	assert.Nil(t, err)
 	_, err = store.TemplateGet(fake.Template.Id)
 	if assert.Error(t, err) {
-		assert.IsType(t, err, &os.PathError{})
+		assert.Equal(t, err, ErrTemplateNotFound)
 	}
 }
 

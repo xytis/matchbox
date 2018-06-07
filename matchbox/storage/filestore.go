@@ -2,6 +2,7 @@ package storage
 
 import (
 	"encoding/json"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -44,6 +45,9 @@ func (s *fileStore) GroupPut(group *storagepb.Group) error {
 func (s *fileStore) GroupGet(id string) (*storagepb.Group, error) {
 	data, err := Dir(s.root).readFile(filepath.Join("groups", id+".json"))
 	if err != nil {
+		if _, ok := err.(*os.PathError); ok {
+			return nil, ErrGroupNotFound
+		}
 		return nil, err
 	}
 	group, err := storagepb.ParseGroup(data)
@@ -90,6 +94,9 @@ func (s *fileStore) ProfilePut(profile *storagepb.Profile) error {
 func (s *fileStore) ProfileGet(id string) (*storagepb.Profile, error) {
 	data, err := Dir(s.root).readFile(filepath.Join("profiles", id+".json"))
 	if err != nil {
+		if _, ok := err.(*os.PathError); ok {
+			return nil, ErrProfileNotFound
+		}
 		return nil, err
 	}
 	profile := new(storagepb.Profile)
@@ -140,6 +147,9 @@ func (s *fileStore) TemplatePut(template *storagepb.Template) error {
 func (s *fileStore) TemplateGet(id string) (*storagepb.Template, error) {
 	data, err := Dir(s.root).readFile(filepath.Join("templates", id+".json"))
 	if err != nil {
+		if _, ok := err.(*os.PathError); ok {
+			return nil, ErrTemplateNotFound
+		}
 		return nil, err
 	}
 	template := new(storagepb.Template)

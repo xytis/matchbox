@@ -4,13 +4,12 @@ import (
 	"net/http"
 	"testing"
 
-	logtest "github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 )
 
 func TestLabelsFromRequest(t *testing.T) {
 	emptyMap := map[string]string{}
-	logger, _ := logtest.NewNullLogger()
 	cases := []struct {
 		urlString string
 		labels    map[string]string
@@ -29,6 +28,6 @@ func TestLabelsFromRequest(t *testing.T) {
 	for _, c := range cases {
 		req, err := http.NewRequest("GET", c.urlString, nil)
 		assert.Nil(t, err)
-		assert.Equal(t, c.labels, labelsFromRequest(logger, req))
+		assert.Equal(t, c.labels, labelsFromRequest(zap.NewNop(), req))
 	}
 }

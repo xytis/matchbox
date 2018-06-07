@@ -29,7 +29,7 @@ func TestSelectGroup(t *testing.T) {
 		{&fake.EmptyStore{}, map[string]string{"a": "b"}, nil, ErrNoMatchingGroup},
 	}
 	for _, c := range cases {
-		srv := NewServer(&Config{c.store})
+		srv := NewServer(c.store)
 		group, err := srv.SelectGroup(context.Background(), &pb.SelectGroupRequest{Labels: c.labels})
 		if assert.Equal(t, c.err, err) {
 			assert.Equal(t, c.group, group)
@@ -60,7 +60,7 @@ func TestSelectProfile(t *testing.T) {
 		{&fake.EmptyStore{}, map[string]string{"a": "b"}, nil, ErrNoMatchingGroup},
 	}
 	for _, c := range cases {
-		srv := NewServer(&Config{c.store})
+		srv := NewServer(c.store)
 		profile, err := srv.SelectProfile(context.Background(), &pb.SelectProfileRequest{Labels: c.labels})
 		if assert.Equal(t, c.err, err) {
 			assert.Equal(t, c.profile, profile)
@@ -69,7 +69,7 @@ func TestSelectProfile(t *testing.T) {
 }
 
 func TestGroupCRUD(t *testing.T) {
-	srv := NewServer(&Config{Store: fake.NewFixedStore()})
+	srv := NewServer(fake.NewFixedStore())
 	_, err := srv.GroupPut(context.Background(), &pb.GroupPutRequest{Group: fake.Group})
 	// assert that:
 	// - Group creation is successful
@@ -88,7 +88,7 @@ func TestGroupCRUD(t *testing.T) {
 }
 
 func TestGroupCreate_Invalid(t *testing.T) {
-	srv := NewServer(&Config{Store: fake.NewFixedStore()})
+	srv := NewServer(fake.NewFixedStore())
 	invalid := &storagepb.Group{}
 	_, err := srv.GroupPut(context.Background(), &pb.GroupPutRequest{Group: invalid})
 	assert.Error(t, err)
@@ -98,7 +98,7 @@ func TestGroupList(t *testing.T) {
 	store := fake.NewFixedStore()
 	store.Groups[fake.Group.Id] = fake.Group
 
-	srv := NewServer(&Config{store})
+	srv := NewServer(store)
 	groups, err := srv.GroupList(context.Background(), &pb.GroupListRequest{})
 	assert.Nil(t, err)
 	if assert.Equal(t, 1, len(groups)) {
@@ -107,7 +107,7 @@ func TestGroupList(t *testing.T) {
 }
 
 func TestGroup_BrokenStore(t *testing.T) {
-	srv := NewServer(&Config{&fake.BrokenStore{}})
+	srv := NewServer(&fake.BrokenStore{})
 	_, err := srv.GroupPut(context.Background(), &pb.GroupPutRequest{Group: fake.Group})
 	assert.Error(t, err)
 	_, err = srv.GroupGet(context.Background(), &pb.GroupGetRequest{Id: fake.Group.Id})
@@ -119,7 +119,7 @@ func TestGroup_BrokenStore(t *testing.T) {
 }
 
 func TestProfileCRUD(t *testing.T) {
-	srv := NewServer(&Config{Store: fake.NewFixedStore()})
+	srv := NewServer(fake.NewFixedStore())
 	_, err := srv.ProfilePut(context.Background(), &pb.ProfilePutRequest{Profile: fake.Profile})
 	// assert that:
 	// - Profile creation is successful
@@ -138,7 +138,7 @@ func TestProfileCRUD(t *testing.T) {
 }
 
 func TestProfileCreate_Invalid(t *testing.T) {
-	srv := NewServer(&Config{Store: fake.NewFixedStore()})
+	srv := NewServer(fake.NewFixedStore())
 	invalid := &storagepb.Profile{}
 	_, err := srv.ProfilePut(context.Background(), &pb.ProfilePutRequest{Profile: invalid})
 	assert.Error(t, err)
@@ -155,7 +155,7 @@ func TestProfileGet(t *testing.T) {
 	}{
 		{fake.Profile.Id, fake.Profile, nil},
 	}
-	srv := NewServer(&Config{store})
+	srv := NewServer(store)
 	for _, c := range cases {
 		profile, err := srv.ProfileGet(context.Background(), &pb.ProfileGetRequest{Id: c.id})
 		assert.Equal(t, c.err, err)
@@ -167,7 +167,7 @@ func TestProfileList(t *testing.T) {
 	store := fake.NewFixedStore()
 	store.Profiles[fake.Profile.Id] = fake.Profile
 
-	srv := NewServer(&Config{Store: store})
+	srv := NewServer(store)
 	profiles, err := srv.ProfileList(context.Background(), &pb.ProfileListRequest{})
 	assert.Nil(t, err)
 	if assert.Equal(t, 1, len(profiles)) {
@@ -176,14 +176,14 @@ func TestProfileList(t *testing.T) {
 }
 
 func TestProfileList_Empty(t *testing.T) {
-	srv := NewServer(&Config{Store: &fake.EmptyStore{}})
+	srv := NewServer(&fake.EmptyStore{})
 	profiles, err := srv.ProfileList(context.Background(), &pb.ProfileListRequest{})
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(profiles))
 }
 
 func TestProfiles_BrokenStore(t *testing.T) {
-	srv := NewServer(&Config{&fake.BrokenStore{}})
+	srv := NewServer(&fake.BrokenStore{})
 	_, err := srv.ProfilePut(context.Background(), &pb.ProfilePutRequest{Profile: fake.Profile})
 	assert.Error(t, err)
 	_, err = srv.ProfileGet(context.Background(), &pb.ProfileGetRequest{Id: fake.Profile.Id})
@@ -195,7 +195,7 @@ func TestProfiles_BrokenStore(t *testing.T) {
 }
 
 func TestTemplatesCRUD(t *testing.T) {
-	srv := NewServer(&Config{Store: fake.NewFixedStore()})
+	srv := NewServer(fake.NewFixedStore())
 	req := &pb.TemplatePutRequest{
 		Template: fake.Template,
 	}
@@ -216,7 +216,7 @@ func TestTemplatesCRUD(t *testing.T) {
 }
 
 func TestTemplate_BrokenStore(t *testing.T) {
-	srv := NewServer(&Config{&fake.BrokenStore{}})
+	srv := NewServer(&fake.BrokenStore{})
 	req := &pb.TemplatePutRequest{
 		Template: fake.Template,
 	}
