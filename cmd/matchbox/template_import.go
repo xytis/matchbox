@@ -11,7 +11,7 @@ import (
 	"github.com/coreos/matchbox/matchbox/storage/storagepb"
 )
 
-// NewTemplateCreateCommand creates groups
+// NewTemplateImportCommand creates groups
 func NewTemplateImportCommand() *cobra.Command {
 	var filename string
 	var templateID string
