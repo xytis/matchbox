@@ -18,14 +18,14 @@ func NewVersionCommand() *cobra.Command {
 		Short: "Print the version and exit",
 		Long:  `Print the version of the bootcmd client`,
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Printf("runtime: go: %s os: %s arch: %s", runtime.Version(), runtime.GOOS, runtime.GOARCH)
-			fmt.Printf("client: version: %s build: %s\n", version.Version, version.Build)
+			fmt.Printf("runtime: go: %s os: %s arch: %s\n", runtime.Version(), runtime.GOOS, runtime.GOARCH)
+			fmt.Printf("client: version: %s\n", version.Version)
 			client := mustClientFromCmd(cmd)
 			req := &pb.VersionReportRequest{}
-			if resp, err := client.Version.Report(context.TODO(), req); err != nil {
+			if resp, err := client.Version.VersionReport(context.TODO(), req); err != nil {
 				fmt.Printf("server could not be reached %v\n", err)
 			} else {
-				fmt.Printf("server: version: %s build: %s\n", resp.Version, resp.Build)
+				fmt.Printf("server: version: %s\n", resp.Version)
 			}
 		},
 	}

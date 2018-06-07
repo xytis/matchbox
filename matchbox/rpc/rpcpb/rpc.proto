@@ -44,6 +44,6 @@ service Select {
 }
 
 service Version {
-  // Report returns current server Version
-  rpc Report(serverpb.VersionReportRequest) returns (serverpb.VersionReportResponse) {};
+  // VersionReport returns current server Version
+  rpc VersionReport(serverpb.VersionReportRequest) returns (serverpb.VersionReportResponse) {};
 }

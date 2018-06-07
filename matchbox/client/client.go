@@ -52,6 +52,8 @@ func New(config *Config) (*Client, error) {
 	if config.TLS != nil {
 		creds := credentials.NewTLS(config.TLS)
 		opts = append(opts, grpc.WithTransportCredentials(creds))
+	} else {
+		opts = append(opts, grpc.WithInsecure())
 	}
 
 	conn, err := grpc.Dial(endpoint, opts...)

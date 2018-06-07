@@ -2,7 +2,6 @@
 package version
 
 // Version provided by compile time -ldflags.
-const (
+var (
 	Version = "was not built properly"
-	Build   = "was not built properly"
 )

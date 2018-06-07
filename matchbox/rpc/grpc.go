@@ -29,5 +29,6 @@ func NewServer(config *Config) *grpc.Server {
 	rpcpb.RegisterProfilesServer(grpcServer, newProfileServer(config.Core))
 	rpcpb.RegisterTemplatesServer(grpcServer, newTemplateServer(config.Core))
 	rpcpb.RegisterSelectServer(grpcServer, newSelectServer(config.Core))
+	rpcpb.RegisterVersionServer(grpcServer, newVersionServer(config.Core))
 	return grpcServer
 }
