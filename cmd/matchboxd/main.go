@@ -41,7 +41,9 @@ func newDaemonCommand() *cobra.Command {
 				zap.NewAtomicLevelAt(level.Level),
 			))
 
-			opts.ExtractConfig(cfg)
+			if err := opts.ExtractConfig(cfg); err != nil {
+				return err
+			}
 			d := NewDaemon(logger)
 			return d.start(opts)
 		},

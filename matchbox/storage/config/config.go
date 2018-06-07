@@ -4,11 +4,11 @@ import (
 	"github.com/pkg/errors"
 )
 
-const (
-	//StoreBackendFile defines a string selector for filesystem backed store
-	StoreBackendFile = "filesystem"
-	//StoreBackendEtcd defines a string selector for etcd backed store
-	StoreBackendEtcd = "etcd"
+// Available backend types
+var (
+	StoreBackendFile   = "filesystem"
+	StoreBackendEtcd   = "etcd"
+	StoreBackendMemory = "memory"
 )
 
 // Config configures a server implementation.
@@ -39,6 +39,8 @@ func (c *Config) Validate() error {
 			return errors.New(`unexpected empty configuration struct`)
 		}
 		return c.EtcdStoreConfig.Validate()
+	case StoreBackendMemory:
+		return nil
 	default:
 		return errors.Errorf(`invalid storage type "%v"`, c.StoreBackend)
 	}

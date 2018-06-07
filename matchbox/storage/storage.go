@@ -60,6 +60,9 @@ func NewStore(cfg *config.Config, logger *zap.Logger) (Store, error) {
 			return nil, errors.Wrap(err, "failure creating etcd store")
 		}
 		return store, nil
+	case config.StoreBackendMemory:
+		store := NewMemoryStore()
+		return store, nil
 	default:
 		return nil, errors.New("unsuported storage engine")
 	}

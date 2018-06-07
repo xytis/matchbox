@@ -36,7 +36,7 @@ func (o *daemonOptions) InstallFlags(flags *pflag.FlagSet) {
 	flags.String("tls-ca", "", "Path to TLS CA file to verify clients")
 
 	//Storage flags
-	flags.String("store-backend", "filesystem", `Select storage backend to use ("filesystem|etcd")`)
+	flags.String("store-backend", config.StoreBackendFile, `Select storage backend to use ("filesystem|etcd")`)
 
 	flags.String("store-filesystem-root", "/var/lib/matchbox", `Root catalog for filesystem storage`)
 
