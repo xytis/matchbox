@@ -26,8 +26,6 @@ func (info *TLSInfo) ClientConfig() (*tls.Config, error) {
 	}
 
 	return &tls.Config{
-		MinVersion:         tls.VersionTLS12,
-		InsecureSkipVerify: false,
 		// CA bundle the client should trust when verifying a server
 		RootCAs: pool,
 		// Client certificates to authenticate to the server

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/coreos/matchbox/matchbox/cli"
 	"github.com/coreos/matchbox/matchbox/version"
 
 	"github.com/spf13/cobra"
@@ -13,14 +12,6 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
-
-type pLevel struct {
-	zapcore.Level
-}
-
-func (*pLevel) Type() string {
-	return "string"
-}
 
 func newDaemonCommand() *cobra.Command {
 	var flags *pflag.FlagSet
@@ -33,7 +24,7 @@ func newDaemonCommand() *cobra.Command {
 		Short:         "Provides fire to your boots",
 		SilenceUsage:  true,
 		SilenceErrors: true,
-		Args:          cli.NoArgsRequired,
+		Args:          cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			logger := zap.New(zapcore.NewCore(
 				zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()),
@@ -48,7 +39,7 @@ func newDaemonCommand() *cobra.Command {
 			return d.start(opts)
 		},
 		DisableFlagsInUseLine: true,
-		Version:               fmt.Sprintf("%s, build %s", version.Version, version.GitCommit),
+		Version:               fmt.Sprintf("server: version: %s build: %s", version.Version, version.Build),
 	}
 
 	flags = cmd.Flags()

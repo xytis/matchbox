@@ -34,7 +34,7 @@ func (c *EtcdStoreConfig) Validate() error {
 	}
 
 	if c.TLS {
-		if _, err := tlsutil.NewCert(c.TLSCertFile, c.TLSKeyFile, nil); err != nil {
+		if _, err := tlsutil.NewCert(c.TLSCertFile, c.TLSKeyFile); err != nil {
 			return err
 		}
 		if c.TLSCAFile != "" {
@@ -54,7 +54,7 @@ func (c *EtcdStoreConfig) BuildTLSConfig() (*tls.Config, error) {
 		return nil, err
 	}
 
-	cert, err := tlsutil.NewCert(c.TLSCertFile, c.TLSKeyFile, nil)
+	cert, err := tlsutil.NewCert(c.TLSCertFile, c.TLSKeyFile)
 	if err != nil {
 		return nil, err
 	}

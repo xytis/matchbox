@@ -55,7 +55,7 @@ func (c *DaemonConfig) Validate() error {
 		if c.TLSCertFile == "" {
 			return errors.New("tls cert file not provided")
 		}
-		if _, err := tlsutil.NewCert(c.TLSCertFile, c.TLSKeyFile, nil); err != nil {
+		if _, err := tlsutil.NewCert(c.TLSCertFile, c.TLSKeyFile); err != nil {
 			return err
 		}
 		if c.TLSClientVerify {
@@ -119,7 +119,7 @@ func (d *Daemon) start(opts *daemonOptions) error {
 	var tc *tls.Config
 
 	if cfg.TLS {
-		cert, err := tlsutil.NewCert(cfg.TLSCertFile, cfg.TLSKeyFile, nil)
+		cert, err := tlsutil.NewCert(cfg.TLSCertFile, cfg.TLSKeyFile)
 		if err != nil {
 			return errors.Wrap(err, "certificate")
 		}

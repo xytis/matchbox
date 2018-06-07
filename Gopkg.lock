@@ -192,6 +192,12 @@
   packages = [
     "jsonpb",
     "proto",
+    "protoc-gen-go",
+    "protoc-gen-go/descriptor",
+    "protoc-gen-go/generator",
+    "protoc-gen-go/generator/internal/remap",
+    "protoc-gen-go/grpc",
+    "protoc-gen-go/plugin",
     "ptypes",
     "ptypes/any",
     "ptypes/duration",
@@ -362,10 +368,7 @@
 
 [[projects]]
   name = "github.com/sirupsen/logrus"
-  packages = [
-    ".",
-    "hooks/test"
-  ]
+  packages = ["."]
   revision = "c155da19408a8799da419ed3eeb0cb5db0ad5dbc"
   version = "v1.0.5"
 
@@ -590,6 +593,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "2179bfd0f11890768621bd619c7553e6c1552e5e5c688c2c582dee1374031085"
+  inputs-digest = "efcebf51b1174a2e65bfedfe2be23a8d7425e730b3bdc0202b1d01fa9b48075e"
   solver-name = "gps-cdcl"
   solver-version = 1

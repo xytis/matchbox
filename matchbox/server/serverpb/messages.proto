@@ -3,6 +3,13 @@ package serverpb;
 
 import "github.com/coreos/matchbox/matchbox/storage/storagepb/storage.proto";
 
+message VersionReportRequest {}
+message VersionReportResponse {
+  string version = 1;
+  string build = 2;
+  string runtime = 3;
+}
+
 // Selects
 
 message SelectGroupRequest {

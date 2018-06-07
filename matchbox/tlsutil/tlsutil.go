@@ -34,8 +34,8 @@ func NewCertPool(CAFiles []string) (*x509.CertPool, error) {
 	return certPool, nil
 }
 
-// NewCert generates TLS cert by using the given cert,key and parse function.
-func NewCert(certfile, keyfile string, parseFunc func([]byte, []byte) (tls.Certificate, error)) (*tls.Certificate, error) {
+// NewCert generates TLS cert by using the given cert and key.
+func NewCert(certfile, keyfile string) (*tls.Certificate, error) {
 	cert, err := ioutil.ReadFile(certfile)
 	if err != nil {
 		return nil, err
@@ -46,11 +46,7 @@ func NewCert(certfile, keyfile string, parseFunc func([]byte, []byte) (tls.Certi
 		return nil, err
 	}
 
-	if parseFunc == nil {
-		parseFunc = tls.X509KeyPair
-	}
-
-	tlsCert, err := parseFunc(cert, key)
+	tlsCert, err := tls.X509KeyPair(cert, key)
 	if err != nil {
 		return nil, err
 	}

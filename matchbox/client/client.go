@@ -2,8 +2,6 @@ package client
 
 import (
 	"crypto/tls"
-	"errors"
-	"fmt"
 	"net"
 	"time"
 
@@ -11,17 +9,13 @@ import (
 	"google.golang.org/grpc/credentials"
 
 	"github.com/coreos/matchbox/matchbox/rpc/rpcpb"
-)
-
-var (
-	errNoEndpoints = errors.New("client: No endpoints provided")
-	errNoTLSConfig = errors.New("client: No TLS Config provided")
+	"github.com/pkg/errors"
 )
 
 // Config configures a Client.
 type Config struct {
-	// List of endpoint URLs
-	Endpoints []string
+	// Endpoint to connect to
+	Endpoint string
 	// DialTimeout is the timeout for dialing a client connection
 	DialTimeout time.Duration
 	// Client TLS credentials
@@ -34,45 +28,23 @@ type Client struct {
 	Profiles  rpcpb.ProfilesClient
 	Templates rpcpb.TemplatesClient
 	Select    rpcpb.SelectClient
-	conn      *grpc.ClientConn
+	Version   rpcpb.VersionClient
+
+	conn *grpc.ClientConn
 }
 
 // New creates a new Client from the given Config.
 func New(config *Config) (*Client, error) {
-	if len(config.Endpoints) == 0 {
-		return nil, errNoEndpoints
-	}
-	for _, endpoint := range config.Endpoints {
-		if _, _, err := net.SplitHostPort(endpoint); err != nil {
-			return nil, fmt.Errorf("client: invalid host:port endpoint: %v", err)
-		}
-	}
-	return newClient(config)
-}
+	endpoint := config.Endpoint
 
-// Close closes the client's connections.
-func (c *Client) Close() error {
-	return c.conn.Close()
-}
-
-func newClient(config *Config) (*Client, error) {
-	conn, err := dialEndpoints(config)
-	if err != nil {
-		return nil, err
+	if len(endpoint) == 0 {
+		return nil, errors.New("server endpoint not provided")
 	}
-	client := &Client{
-		conn:      conn,
-		Groups:    rpcpb.NewGroupsClient(conn),
-		Profiles:  rpcpb.NewProfilesClient(conn),
-		Templates: rpcpb.NewTemplatesClient(conn),
-		Select:    rpcpb.NewSelectClient(conn),
-	}
-	return client, nil
-}
 
-// dialEndpoints attemps to Dial each endpoint in order to establish a
-// connection.
-func dialEndpoints(config *Config) (conn *grpc.ClientConn, err error) {
+	if _, _, err := net.SplitHostPort(endpoint); err != nil {
+		return nil, errors.Wrap(err, "client: invalid host:port endpoint")
+	}
+
 	opts := []grpc.DialOption{
 		grpc.WithBlock(),
 		grpc.WithTimeout(config.DialTimeout),
@@ -80,15 +52,25 @@ func dialEndpoints(config *Config) (conn *grpc.ClientConn, err error) {
 	if config.TLS != nil {
 		creds := credentials.NewTLS(config.TLS)
 		opts = append(opts, grpc.WithTransportCredentials(creds))
-	} else {
-		return nil, errNoTLSConfig
 	}
 
-	for _, endpoint := range config.Endpoints {
-		conn, err = grpc.Dial(endpoint, opts...)
-		if err == nil {
-			return conn, nil
-		}
+	conn, err := grpc.Dial(endpoint, opts...)
+	if err != nil {
+		return nil, errors.Wrap(err, "client: unable to dial")
 	}
-	return nil, err
+
+	client := &Client{
+		conn:      conn,
+		Groups:    rpcpb.NewGroupsClient(conn),
+		Profiles:  rpcpb.NewProfilesClient(conn),
+		Templates: rpcpb.NewTemplatesClient(conn),
+		Select:    rpcpb.NewSelectClient(conn),
+		Version:   rpcpb.NewVersionClient(conn),
+	}
+	return client, nil
+}
+
+// Close closes the client's connections.
+func (c *Client) Close() error {
+	return c.conn.Close()
 }

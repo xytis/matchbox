@@ -9,7 +9,7 @@ QUAY_REPO=quay.io/coreos/matchbox
 
 all: build
 
-build: clean bin/matchboxd
+build: clean bin/matchboxd bin/matchbox
 
 bin/%:
 	@go build -o bin/$* -v -ldflags $(LD_FLAGS) $(REPO)/cmd/$*

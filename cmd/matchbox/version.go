@@ -1,0 +1,32 @@
+package main
+
+import (
+	"context"
+	"fmt"
+	"runtime"
+
+	pb "github.com/coreos/matchbox/matchbox/server/serverpb"
+	"github.com/coreos/matchbox/matchbox/version"
+
+	"github.com/spf13/cobra"
+)
+
+// NewVersionCommand builds version command for client
+func NewVersionCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:   "version",
+		Short: "Print the version and exit",
+		Long:  `Print the version of the bootcmd client`,
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Printf("runtime: go: %s os: %s arch: %s", runtime.Version(), runtime.GOOS, runtime.GOARCH)
+			fmt.Printf("client: version: %s build: %s\n", version.Version, version.Build)
+			client := mustClientFromCmd(cmd)
+			req := &pb.VersionReportRequest{}
+			if resp, err := client.Version.Report(context.TODO(), req); err != nil {
+				fmt.Printf("server could not be reached %v\n", err)
+			} else {
+				fmt.Printf("server: version: %s build: %s\n", resp.Version, resp.Build)
+			}
+		},
+	}
+}

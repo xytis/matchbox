@@ -42,3 +42,8 @@ service Select {
   // SelectProfile returns the Profile matching the given labels.
   rpc SelectProfile(serverpb.SelectProfileRequest) returns (serverpb.SelectProfileResponse) {};
 }
+
+service Version {
+  // Report returns current server Version
+  rpc Report(serverpb.VersionReportRequest) returns (serverpb.VersionReportResponse) {};
+}

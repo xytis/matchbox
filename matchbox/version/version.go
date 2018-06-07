@@ -3,6 +3,6 @@ package version
 
 // Version provided by compile time -ldflags.
 const (
-	Version   = "was not built properly"
-	GitCommit = "was not built properly"
+	Version = "was not built properly"
+	Build   = "was not built properly"
 )

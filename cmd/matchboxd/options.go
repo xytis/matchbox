@@ -9,7 +9,6 @@ import (
 )
 
 type daemonOptions struct {
-	version       bool
 	storageConfig *config.Config
 	daemonConfig  *DaemonConfig
 }
