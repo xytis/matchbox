@@ -22,7 +22,7 @@ func NewProfileListCommand() *cobra.Command {
 			tw := newTabWriter(os.Stdout)
 			defer tw.Flush()
 			// legend
-			fmt.Fprintf(tw, "ID\tPROFILE NAME\t\n")
+			fmt.Fprintf(tw, "ID\tPROFILE NAME\tTEMPLATES\n")
 
 			client := mustClientFromCmd(cmd)
 			resp, err := client.Profiles.ProfileList(context.TODO(), &pb.ProfileListRequest{})
@@ -30,7 +30,7 @@ func NewProfileListCommand() *cobra.Command {
 				return
 			}
 			for _, profile := range resp.Profiles {
-				fmt.Fprintf(tw, "%s\t%s\n", profile.Id, profile.Name)
+				fmt.Fprintf(tw, "%s\t%s\t%v\n", profile.Id, profile.Name, profile.Template)
 			}
 		},
 	}

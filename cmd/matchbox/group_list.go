@@ -21,7 +21,7 @@ func NewGroupListCommand() *cobra.Command {
 			tw := newTabWriter(os.Stdout)
 			defer tw.Flush()
 			// legend
-			fmt.Fprintf(tw, "ID\tGROUP NAME\tSELECTORS\tPROFILE\n")
+			fmt.Fprintf(tw, "ID\tGROUP NAME\tPROFILE ID\tSELECTORS\n")
 
 			client := mustClientFromCmd(cmd)
 			resp, err := client.Groups.GroupList(context.TODO(), &pb.GroupListRequest{})
@@ -29,7 +29,7 @@ func NewGroupListCommand() *cobra.Command {
 				return
 			}
 			for _, group := range resp.Groups {
-				fmt.Fprintf(tw, "%s\t%s\t%#v\t%s\n", group.Id, group.Name, group.Selector, group.Profile)
+				fmt.Fprintf(tw, "%s\t%s\t%s\t%v\n", group.Id, group.Name, group.Profile, group.Selector)
 			}
 		},
 	}
