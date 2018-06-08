@@ -2,7 +2,6 @@ package storage
 
 import (
 	"github.com/coreos/matchbox/matchbox/storage/storagepb"
-	fake "github.com/coreos/matchbox/matchbox/storage/testfakes"
 )
 
 const (
@@ -73,6 +72,4 @@ func AssertDefaultTemplates(s Store) {
 			Contents: []byte(grub),
 		})
 	}
-	s.ProfilePut(fake.Profile)
-	s.GroupPut(fake.Group)
 }

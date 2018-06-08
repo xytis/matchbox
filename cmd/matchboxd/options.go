@@ -65,7 +65,7 @@ func (o *daemonOptions) ExtractConfig(cfg *viper.Viper) error {
 	o.daemonConfig.TLSClientCAFile = cfg.GetString("tls-ca")
 
 	o.daemonConfig.SignatureKeyring = cfg.GetString("signature-keyring")
-	o.daemonConfig.SignaturePassphase = cfg.GetString("signature-passphrase")
+	o.daemonConfig.SignaturePassphrase = cfg.GetString("signature-passphrase")
 
 	if err := o.daemonConfig.Validate(); err != nil {
 		return errors.Wrap(err, "invalid configuration")

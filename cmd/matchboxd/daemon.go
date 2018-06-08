@@ -38,8 +38,8 @@ type DaemonConfig struct {
 	AssetsDir string
 
 	//Signature Config
-	SignatureKeyring   string
-	SignaturePassphase string
+	SignatureKeyring    string
+	SignaturePassphrase string
 }
 
 // NewDaemonConfig returns empty config
@@ -69,7 +69,7 @@ func (c *DaemonConfig) Validate() error {
 		}
 	}
 	if c.SignatureKeyring != "" {
-		if _, err := sign.LoadGPGEntity(c.SignatureKeyring, c.SignaturePassphase); err != nil {
+		if _, err := sign.LoadGPGEntity(c.SignatureKeyring, c.SignaturePassphrase); err != nil {
 			return errors.Wrap(err, "failed to create signer")
 		}
 	}
@@ -164,9 +164,10 @@ func (d *Daemon) start(opts *daemonOptions) error {
 	}
 
 	if cfg.SignatureKeyring != "" {
-		gpg, _ := sign.LoadGPGEntity(cfg.SignatureKeyring, cfg.SignaturePassphase)
+		gpg, _ := sign.LoadGPGEntity(cfg.SignatureKeyring, cfg.SignaturePassphrase)
 		webcfg.Signer = sign.NewGPGSigner(gpg)
 		webcfg.ArmoredSigner = sign.NewArmoredGPGSigner(gpg)
+		d.logger.Sugar().Infof("singature: using keyring '%s' (passphrase: %t)", cfg.SignatureKeyring, cfg.SignaturePassphrase != "")
 	}
 
 	d.web = web.NewServer(webcfg)
