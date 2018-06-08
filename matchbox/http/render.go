@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"text/template"
 
+	"github.com/masterminds/sprig"
 	"go.uber.org/zap"
 )
 
@@ -38,27 +39,10 @@ func (s *Server) writeJSON(w http.ResponseWriter, data []byte) {
 
 // Render fills buffer with template render, does not allow missing keys
 func Render(w io.Writer, name string, content string, data map[string]interface{}) error {
-	tmpl := template.New(name).Option("missingkey=error")
+	tmpl := template.New(name).Funcs(sprig.TxtFuncMap()).Option("missingkey=error")
 	tmpl, err := tmpl.Parse(content)
 	if err != nil {
 		return err
 	}
 	return tmpl.Execute(w, data)
-}
-
-func (s *Server) renderTemplate(w io.Writer, data interface{}, contents ...string) (err error) {
-	tmpl := template.New("").Option("missingkey=error")
-	for _, content := range contents {
-		tmpl, err = tmpl.Parse(content)
-		if err != nil {
-			s.logger.Error("error parsing template", zap.Error(err))
-			return err
-		}
-	}
-	err = tmpl.Execute(w, data)
-	if err != nil {
-		s.logger.Error("error rendering template", zap.Error(err))
-		return err
-	}
-	return nil
 }

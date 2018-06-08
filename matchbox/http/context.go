@@ -2,11 +2,15 @@ package http
 
 import (
 	"context"
-	"errors"
+	"fmt"
+	"net/http"
 
+	pb "github.com/coreos/matchbox/matchbox/server/serverpb"
 	"github.com/coreos/matchbox/matchbox/storage/storagepb"
 	"github.com/divideandconquer/go-merge/merge"
-	"github.com/hashicorp/go-multierror"
+	"github.com/pkg/errors"
+
+	"go.uber.org/zap"
 )
 
 // unexported key prevents collisions
@@ -23,6 +27,14 @@ var (
 	errNoGroupFromContext   = errors.New("api: Context missing a Group")
 	errNoLabelsFromContext  = errors.New("api: Context missing parsed Labels")
 )
+
+type unwrappedContext struct {
+	context.Context
+	Labels   map[string]string
+	Group    *storagepb.Group
+	Profile  *storagepb.Profile
+	Metadata map[string]interface{}
+}
 
 // withProfile returns a copy of ctx that stores the given Profile.
 func withProfile(ctx context.Context, profile *storagepb.Profile) context.Context {
@@ -66,20 +78,23 @@ func labelsFromContext(ctx context.Context) (map[string]string, error) {
 
 func mergeMetadata(ctx context.Context) (map[string]interface{}, error) {
 	metadata := make(map[string]interface{})
-	var errors error
 	if group, err := groupFromContext(ctx); err == nil {
 		if rg, err := group.ToRichGroup(); err == nil {
 			metadata = merge.Merge(metadata, rg.Metadata).(map[string]interface{})
 		} else {
-			errors = multierror.Append(errors, err)
+			return nil, err
 		}
+	} else {
+		return nil, err
 	}
 	if profile, err := profileFromContext(ctx); err == nil {
 		if rp, err := profile.ToRichProfile(); err == nil {
 			metadata = merge.Merge(metadata, rp.Metadata).(map[string]interface{})
 		} else {
-			errors = multierror.Append(errors, err)
+			return nil, err
 		}
+	} else {
+		return nil, err
 	}
 	if labels, err := labelsFromContext(ctx); err == nil {
 		if submap, found := metadata["label"]; found {
@@ -87,6 +102,70 @@ func mergeMetadata(ctx context.Context) (map[string]interface{}, error) {
 		} else {
 			metadata["label"] = merge.Merge(map[string]string{}, labels)
 		}
+	} else {
+		return nil, err
 	}
-	return metadata, errors
+	return metadata, nil
+}
+
+// wrapContext fills context with parsed query information
+func (s *Server) wrapContext(next http.Handler) http.Handler {
+	fn := func(w http.ResponseWriter, req *http.Request) {
+		ctx := req.Context()
+		labels := labelsFromRequest(s.logger, req)
+		ctx = withLabels(ctx, labels)
+		if group, err := s.core.SelectGroup(ctx, &pb.SelectGroupRequest{Labels: labels}); err == nil {
+			ctx = withGroup(ctx, group)
+			if profile, err := s.core.ProfileGet(ctx, &pb.ProfileGetRequest{Id: group.Profile}); err == nil {
+				ctx = withProfile(ctx, profile)
+			}
+		}
+		next.ServeHTTP(w, req.WithContext(ctx))
+	}
+	return http.HandlerFunc(fn)
+}
+
+// unwrapContext performs reverse operation to wrapContext
+func (s *Server) unwrapContext(ctx context.Context) (unwrappedContext, error) {
+	var err error
+	result := unwrappedContext{Context: ctx}
+	result.Labels, err = labelsFromContext(ctx)
+	if err != nil {
+		s.logger.Warn("labels not present in context",
+			zap.Error(err),
+		)
+		return result, err
+	}
+
+	result.Group, err = groupFromContext(ctx)
+	if err != nil {
+		s.logger.Info("group not matched",
+			zap.Error(err),
+			zap.String("labels", fmt.Sprintf("%v", result.Labels)),
+		)
+		return result, err
+	}
+
+	result.Profile, err = profileFromContext(ctx)
+	if err != nil {
+		s.logger.Info("profile not matched",
+			zap.Error(err),
+			zap.String("labels", fmt.Sprintf("%v", result.Labels)),
+			zap.String("group", result.Group.Id),
+		)
+		return result, err
+	}
+
+	result.Metadata, err = mergeMetadata(ctx)
+	if err != nil {
+		s.logger.Warn("metadata not merged",
+			zap.Error(err),
+			zap.String("labels", fmt.Sprintf("%v", result.Labels)),
+			zap.String("group", result.Group.Id),
+			zap.String("profile", result.Profile.Id),
+		)
+		return result, err
+	}
+
+	return result, nil
 }

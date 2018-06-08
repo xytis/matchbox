@@ -14,7 +14,7 @@ const (
         "sshAuthorizedKeys": [
         {{- if .SSHAuthorizedKeys }}
           {{- range $i, $key := .SSHAuthorizedKeys }}
-          "ssh-rsa {{$key}}"{{- if ne ($i+1 len(.SSHAuthorizedKeys)) }},{{ end }}
+          "ssh-rsa {{$key}}"{{- if eq $key last .SSHAuthorizedKeys }},{{ end }}
           {{- end }}
         {{- end }}
         ]

@@ -15,32 +15,15 @@ const plainContentType = "plain/text"
 // matching the request.
 func (s *Server) metadataHandler() http.Handler {
 	fn := func(w http.ResponseWriter, req *http.Request) {
-		ctx := req.Context()
-
-		var err error
-
-		_, err = groupFromContext(ctx)
+		ctx, err := s.unwrapContext(req.Context())
 		if err != nil {
-			http.NotFound(w, req)
-			return
-		}
-
-		_, err = profileFromContext(ctx)
-		if err != nil {
-			http.NotFound(w, req)
-			return
-		}
-
-		// collect data for rendering
-		metadata, err := mergeMetadata(ctx)
-		if err != nil {
-			s.logger.Warn("metadata not merged", zap.Error(err))
+			s.logger.Info("context not valid", zap.Error(err))
 			http.NotFound(w, req)
 			return
 		}
 
 		w.Header().Set(contentType, plainContentType)
-		renderAsEnvFile(w, "", metadata)
+		renderAsEnvFile(w, "", ctx.Metadata)
 	}
 	return http.HandlerFunc(fn)
 }

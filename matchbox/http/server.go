@@ -46,13 +46,9 @@ func (s *Server) HTTPHandler() http.Handler {
 	r := mux.NewRouter()
 
 	// Logging
-	r.Use(func(next http.Handler) http.Handler {
-		return s.logRequest(next)
-	})
+	r.Use(s.logRequest)
 	// Context parser
-	r.Use(func(next http.Handler) http.Handler {
-		return s.selectContext(s.core, next)
-	})
+	r.Use(s.wrapContext)
 	// Signature Handlers
 	r.Use(func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, req *http.Request) {
@@ -91,4 +87,13 @@ func (s *Server) HTTPHandler() http.Handler {
 	}
 
 	return r
+}
+
+// logRequest logs HTTP requests.
+func (s *Server) logRequest(next http.Handler) http.Handler {
+	fn := func(w http.ResponseWriter, req *http.Request) {
+		s.logger.Info("HTTP", zap.String("method", req.Method), zap.String("url", req.URL.String()))
+		next.ServeHTTP(w, req)
+	}
+	return http.HandlerFunc(fn)
 }

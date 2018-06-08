@@ -31,12 +31,14 @@ func TestMetadataHandler(t *testing.T) {
 		"some":   "not-override",
 	}
 
-	srv := NewServer(&Config{Logger: zap.NewNop()})
-	h := srv.metadataHandler()
 	ctx := context.Background()
+	ctx = withLabels(ctx, labels)
 	ctx = withGroup(ctx, group)
 	ctx = withProfile(ctx, profile)
-	ctx = withLabels(ctx, labels)
+
+	srv := NewServer(&Config{Logger: zap.NewNop()})
+	h := srv.metadataHandler()
+
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/", nil)
 	h.ServeHTTP(w, req.WithContext(ctx))
@@ -75,7 +77,9 @@ func TestMetadataHandler_MetadataEdgeCases(t *testing.T) {
 		{&storagepb.Group{Metadata: []byte(`{"no":false}`)}, "NO=false\n"},
 	}
 	for _, c := range cases {
+
 		ctx := context.Background()
+		ctx = withLabels(ctx, make(map[string]string))
 		ctx = withGroup(ctx, c.group)
 		ctx = withProfile(ctx, &storagepb.Profile{})
 
