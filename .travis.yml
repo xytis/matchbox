@@ -11,8 +11,11 @@ go:
 matrix:
   allow_failures:
     - go: tip
+before_install:
+  - curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
 install:
   - go get github.com/golang/lint/golint
+  - dep ensure
 script:
   - make test
 deploy:
