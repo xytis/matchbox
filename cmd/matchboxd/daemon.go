@@ -170,6 +170,10 @@ func (d *Daemon) start(opts *daemonOptions) error {
 		d.logger.Sugar().Infof("singature: using keyring '%s' (passphrase: %t)", cfg.SignatureKeyring, cfg.SignaturePassphrase != "")
 	}
 
+	if cfg.AssetsDir != "" {
+		webcfg.AssetsPath = cfg.AssetsDir
+	}
+
 	d.web = web.NewServer(webcfg)
 
 	if cfg.RPCAddress != "" {
@@ -187,23 +191,30 @@ func (d *Daemon) start(opts *daemonOptions) error {
 		d.http = &http.Server{Addr: cfg.HTTPAddress, Handler: d.web.HTTPHandler()}
 		go func() {
 			d.logger.Sugar().Infof("http: listening on %s", cfg.HTTPAddress)
-			if err := d.http.ListenAndServe(); err != nil {
-				d.logger.Sugar().Fatal(err)
+			if err := d.http.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				d.logger.Error("http: server error", zap.Error(err))
 			}
 		}()
 	}
 
-	done := make(chan bool, 1)
+	done := make(chan bool)
 	sigs := make(chan os.Signal, 1)
 
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
 		<-sigs
+		logger := d.logger
 		// Should handle stuff here
-		d.logger.Sugar().Infof("shutting down")
-		d.http.Shutdown(context.Background())
-		done <- true
+		logger.Info("shutting down")
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		d.http.SetKeepAlivesEnabled(false)
+		if err := d.http.Shutdown(ctx); err != nil {
+			logger.Error("could not gracefully shutdown the server", zap.Error(err))
+		}
+		close(done)
 	}()
 
 	<-done

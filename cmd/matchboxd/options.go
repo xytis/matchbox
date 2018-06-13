@@ -27,6 +27,8 @@ func (o *daemonOptions) InstallFlags(flags *pflag.FlagSet) {
 	flags.String("http-address", "127.0.0.1:8080", "HTTP listen address")
 	flags.String("rpc-address", "", "RPC listen address")
 
+	flags.String("assets-dir", "", "Assets directory to serve")
+
 	flags.Bool("tls", true, "Enable TLS encryption on RPC")
 	flags.String("tls-key", "", "Path to TLS key file")
 	flags.String("tls-cert", "", "Path to TLS cert file")
@@ -58,6 +60,8 @@ func (o *daemonOptions) InstallFlags(flags *pflag.FlagSet) {
 func (o *daemonOptions) ExtractConfig(cfg *viper.Viper) error {
 	o.daemonConfig.HTTPAddress = cfg.GetString("http-address")
 	o.daemonConfig.RPCAddress = cfg.GetString("rpc-address")
+	o.daemonConfig.AssetsDir = cfg.GetString("assets-dir")
+
 	o.daemonConfig.TLS = cfg.GetBool("tls")
 	o.daemonConfig.TLSKeyFile = cfg.GetString("tls-key")
 	o.daemonConfig.TLSCertFile = cfg.GetString("tls-cert")

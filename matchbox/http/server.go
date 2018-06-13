@@ -2,6 +2,7 @@ package http
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/coreos/matchbox/matchbox/server"
 	"github.com/coreos/matchbox/matchbox/sign"
@@ -45,8 +46,6 @@ func NewServer(config *Config) *Server {
 func (s *Server) HTTPHandler() http.Handler {
 	r := mux.NewRouter()
 
-	// Logging
-	r.Use(s.logRequest)
 	// Context parser
 	r.Use(s.wrapContext)
 	// Signature Handlers
@@ -86,14 +85,25 @@ func (s *Server) HTTPHandler() http.Handler {
 		r.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir(s.assetsPath))))
 	}
 
-	return r
+	return s.logging(r)
 }
 
-// logRequest logs HTTP requests.
-func (s *Server) logRequest(next http.Handler) http.Handler {
+type loggingResponseWriter struct {
+	http.ResponseWriter
+	status int
+	size   int
+}
+
+type loggingRequestHandler struct {
+}
+
+// logging logs HTTP requests.
+func (s *Server) logging(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, req *http.Request) {
-		s.logger.Info("HTTP", zap.String("method", req.Method), zap.String("url", req.URL.String()))
+		startTime := time.Now()
 		next.ServeHTTP(w, req)
+		duration := time.Since(startTime)
+		s.logger.Info("HTTP", zap.String("method", req.Method), zap.String("url", req.URL.String()), zap.Duration("duration", duration))
 	}
 	return http.HandlerFunc(fn)
 }
