@@ -2,6 +2,7 @@ package storagepb
 
 import (
 	"encoding/json"
+	"fmt"
 	"net"
 	"sort"
 	"strings"
@@ -24,6 +25,7 @@ func ParseGroup(data []byte) (*Group, error) {
 	return group, err
 }
 
+// Copy creates a copy of Group
 func (g *Group) Copy() *Group {
 	selectors := make(map[string]string)
 	for k, v := range g.Selector {
@@ -78,9 +80,9 @@ func (g *Group) AssertValid() error {
 	return nil
 }
 
-// selectorString returns Group selectors as a string of sorted key value
+// SelectorString returns Group selectors as a string of sorted key value
 // pairs for comparisons.
-func (g *Group) selectorString() string {
+func (g *Group) SelectorString() string {
 	reqs := make([]string, 0, len(g.Selector))
 	for key, value := range g.Selector {
 		reqs = append(reqs, key+"="+value)
@@ -88,6 +90,23 @@ func (g *Group) selectorString() string {
 	// sort by "key=value" pairs for a deterministic ordering
 	sort.StringSlice(reqs).Sort()
 	return strings.Join(reqs, ",")
+}
+
+// MetadataPrettyString returns metadata in pretty string format
+func (g *Group) MetadataPrettyString() string {
+	if g.Metadata == nil {
+		return "{}"
+	}
+	metadata := make(map[string]interface{})
+	err := json.Unmarshal(g.Metadata, &metadata)
+	if err != nil {
+		return fmt.Sprintf("unable to unmarshal metadata: %v\n%s\n", err, g.Metadata)
+	}
+	pretty, err := json.MarshalIndent(metadata, "", "  ")
+	if err != nil {
+		return fmt.Sprintf("unable to marshal metadata: %v\n%s\n", err, g.Metadata)
+	}
+	return string(pretty)
 }
 
 // ToRichGroup converts a Group into a RichGroup suitable for writing and
@@ -127,10 +146,10 @@ func (groups ByReqs) Swap(i, j int) {
 
 func (groups ByReqs) Less(i, j int) bool {
 	if len(groups[i].Selector) == len(groups[j].Selector) {
-		if groups[i].selectorString() == groups[j].selectorString() {
+		if groups[i].SelectorString() == groups[j].SelectorString() {
 			return groups[i].Id < groups[j].Id
 		}
-		return groups[i].selectorString() < groups[j].selectorString()
+		return groups[i].SelectorString() < groups[j].SelectorString()
 	}
 	return len(groups[i].Selector) > len(groups[j].Selector)
 }

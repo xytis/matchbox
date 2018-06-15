@@ -29,7 +29,7 @@ func NewGroupListCommand() *cobra.Command {
 				return
 			}
 			for _, group := range resp.Groups {
-				fmt.Fprintf(tw, "%s\t%s\t%s\t%v\n", group.Id, group.Name, group.Profile, group.Selector)
+				fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n", group.Id, group.Name, group.Profile, group.SelectorString())
 			}
 		},
 	}

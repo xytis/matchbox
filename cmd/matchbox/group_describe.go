@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -21,10 +22,8 @@ func NewGroupDescribeCommand() *cobra.Command {
 			tw := newTabWriter(os.Stdout)
 			defer tw.Flush()
 
-			// legend
-			fmt.Fprintf(tw, "ID\tNAME\tSELECTORS\tPROFILE\tMETADATA\n")
-
 			client := mustClientFromCmd(cmd)
+			flags := cmd.Flags()
 			request := &pb.GroupGetRequest{
 				Id: args[0],
 			}
@@ -33,9 +32,23 @@ func NewGroupDescribeCommand() *cobra.Command {
 				return
 			}
 			g := resp.Group
-			fmt.Fprintf(tw, "%s\t%s\t%s\t%#v\t%s\n", g.Id, g.Name, g.Selector, g.Profile, g.Metadata)
+			if ok, _ := flags.GetBool("json"); !ok {
+				fmt.Fprintf(tw, "ID:\t%s\n", g.Id)
+				fmt.Fprintf(tw, "Name:\t%s\n", g.Name)
+				fmt.Fprintf(tw, "Selectors:\t%s\n", g.SelectorString())
+				fmt.Fprintf(tw, "Profile:\t%s\n", g.Profile)
+				fmt.Fprintf(tw, "Metadata:\n%s\n", g.MetadataPrettyString())
+			} else {
+				j, err := json.Marshal(g)
+				if err != nil {
+					fmt.Fprintf(os.Stdout, `{"success": "false", "error": "%v"}`, err)
+				}
+				fmt.Fprint(os.Stdout, string(j))
+			}
 		},
 	}
+
+	cmd.Flags().Bool("json", false, "Output JSON")
 
 	return cmd
 }
