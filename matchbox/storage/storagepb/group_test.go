@@ -131,21 +131,28 @@ func TestSelectorString(t *testing.T) {
 }
 
 func TestGroupSort(t *testing.T) {
-	oneCondition := &Group{
-		Name: "group with one selector",
+	o1 := &Group{
+		Id: "o1",
 		Selector: map[string]string{
 			"region": "a",
 		},
 	}
-	twoConditions := &Group{
-		Name: "group with two selectors",
+	o2 := &Group{
+		Id: "o2",
 		Selector: map[string]string{
 			"region": "a",
 			"zone":   "z",
 		},
 	}
-	dualConditions := &Group{
-		Name: "group with two selectors",
+	o3 := &Group{
+		Id: "o3",
+		Selector: map[string]string{
+			"region": "b",
+			"zone":   "z",
+		},
+	}
+	o4 := &Group{
+		Id: "o4",
 		Selector: map[string]string{
 			"region": "b",
 			"zone":   "z",
@@ -155,14 +162,16 @@ func TestGroupSort(t *testing.T) {
 		input    []*Group
 		expected []*Group
 	}{
-		{[]*Group{oneCondition, dualConditions, twoConditions}, []*Group{oneCondition, twoConditions, dualConditions}},
-		{[]*Group{twoConditions, dualConditions, oneCondition}, []*Group{oneCondition, twoConditions, dualConditions}},
-		{[]*Group{testGroup, testGroupWithoutProfile, oneCondition, twoConditions, dualConditions}, []*Group{oneCondition, testGroupWithoutProfile, testGroup, twoConditions, dualConditions}},
+		{[]*Group{o1, o2, o3}, []*Group{o2, o3, o1}},
+		{[]*Group{o3, o1, o2}, []*Group{o2, o3, o1}},
+		{[]*Group{o1, o2, o3, o4}, []*Group{o2, o3, o4, o1}},
+		{[]*Group{o1, o2, o4, o3}, []*Group{o2, o3, o4, o1}},
 	}
 	// assert that
 	// - Group ordering is deterministic
-	// - Groups are sorted by increasing Selector length
-	// - when Selectors are equal in length, sort by key=value strings.
+	// - Groups are sorted by decreasing Selector length
+	// - when Selectors are equal in length, sort by key=value strings alphabeticaly.
+	// - when Selectors are not unique, sort by id (legacy case)
 	for _, c := range cases {
 		sort.Sort(ByReqs(c.input))
 		assert.Equal(t, c.expected, c.input)

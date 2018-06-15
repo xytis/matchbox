@@ -1,9 +1,8 @@
 package server
 
 import (
-	"sort"
-
 	"context"
+	"sort"
 
 	pb "github.com/coreos/matchbox/matchbox/server/serverpb"
 	"github.com/coreos/matchbox/matchbox/storage"
@@ -73,7 +72,7 @@ func (s *server) SelectGroup(ctx context.Context, req *pb.SelectGroupRequest) (*
 	if err != nil {
 		return nil, err
 	}
-	sort.Sort(sort.Reverse(storagepb.ByReqs(groups)))
+	sort.Sort(storagepb.ByReqs(groups))
 	for _, group := range groups {
 		if group.Matches(req.Labels) {
 			return group, nil

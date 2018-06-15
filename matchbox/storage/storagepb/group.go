@@ -111,9 +111,10 @@ func (g *Group) ToRichGroup() (*RichGroup, error) {
 }
 
 // ByReqs defines a collection of Group structs which have a deterministic
-// sorted order by increasing number of Requirements, then by sorted key/value
+// sorted order by decreasing number of Requirements, then by sorted key/value
 // strings. For example, a Group with Requirements {a:b, c:d} should be ordered
 // after one with {a:b} and before one with {a:d, c:d}.
+// (legacy) If two groups share selectors, Id is used to tiebreak.
 type ByReqs []*Group
 
 func (groups ByReqs) Len() int {
@@ -126,9 +127,12 @@ func (groups ByReqs) Swap(i, j int) {
 
 func (groups ByReqs) Less(i, j int) bool {
 	if len(groups[i].Selector) == len(groups[j].Selector) {
+		if groups[i].selectorString() == groups[j].selectorString() {
+			return groups[i].Id < groups[j].Id
+		}
 		return groups[i].selectorString() < groups[j].selectorString()
 	}
-	return len(groups[i].Selector) < len(groups[j].Selector)
+	return len(groups[i].Selector) > len(groups[j].Selector)
 }
 
 // RichGroup is a user provided Group definition.

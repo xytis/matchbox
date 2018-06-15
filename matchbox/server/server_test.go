@@ -37,6 +37,52 @@ func TestSelectGroup(t *testing.T) {
 	}
 }
 
+func TestSelectGroupAlphabeticTiebreak(t *testing.T) {
+	store := fake.NewFixedStore()
+	labels := map[string]string{"a": "a", "b": "b", "c": "c"}
+	store.Groups["c"] = &storagepb.Group{
+		Id:       "c",
+		Selector: map[string]string{"c": "c"},
+	}
+	store.Groups["b"] = &storagepb.Group{
+		Id:       "b",
+		Selector: map[string]string{"b": "b"},
+	}
+	store.Groups["a"] = &storagepb.Group{
+		Id:       "a",
+		Selector: map[string]string{"a": "a"},
+	}
+
+	srv := NewServer(store)
+	group, err := srv.SelectGroup(context.Background(), &pb.SelectGroupRequest{Labels: labels})
+	if assert.Equal(t, nil, err) {
+		assert.Equal(t, "a", group.Id)
+	}
+}
+
+func TestSelectGroupLongestMatchTiebreak(t *testing.T) {
+	store := fake.NewFixedStore()
+	labels := map[string]string{"a": "a", "s1": "1", "s2": "2", "s3": "3"}
+	store.Groups["3"] = &storagepb.Group{
+		Id:       "3",
+		Selector: map[string]string{"a": "a", "s1": "1", "s2": "2", "s3": "3"},
+	}
+	store.Groups["2"] = &storagepb.Group{
+		Id:       "2",
+		Selector: map[string]string{"a": "a", "s2": "2", "s3": "3"},
+	}
+	store.Groups["1"] = &storagepb.Group{
+		Id:       "1",
+		Selector: map[string]string{"a": "a", "s3": "3"},
+	}
+
+	srv := NewServer(store)
+	group, err := srv.SelectGroup(context.Background(), &pb.SelectGroupRequest{Labels: labels})
+	if assert.Equal(t, nil, err) {
+		assert.Equal(t, "3", group.Id)
+	}
+}
+
 func TestSelectProfile(t *testing.T) {
 	store := fake.NewFixedStore()
 	store.Groups[fake.Group.Id] = fake.Group
