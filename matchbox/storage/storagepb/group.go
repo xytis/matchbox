@@ -81,7 +81,7 @@ func (g *Group) AssertValid() error {
 }
 
 // SelectorString returns Group selectors as a string of sorted key value
-// pairs for comparisons.
+// pairs for comparisons and output.
 func (g *Group) SelectorString() string {
 	reqs := make([]string, 0, len(g.Selector))
 	for key, value := range g.Selector {

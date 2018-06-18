@@ -24,7 +24,12 @@ func (s *Server) grubHandler() http.Handler {
 
 		templateID, present := ctx.Profile.Template["grub"]
 		if !present {
-			templateID = "default-grub"
+			s.logger.Info("template binding for grup is not set",
+				zap.String("group", ctx.Group.Id),
+				zap.String("profile", ctx.Profile.Id),
+			)
+			http.NotFound(w, req)
+			return
 		}
 		tmpl, err := core.TemplateGet(ctx, &pb.TemplateGetRequest{Id: templateID})
 		if err != nil {

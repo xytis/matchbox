@@ -38,7 +38,12 @@ func (s *Server) ipxeHandler() http.Handler {
 
 		templateID, present := ctx.Profile.Template["ipxe"]
 		if !present {
-			templateID = "default-ipxe"
+			s.logger.Info("template binding for ipxe is not set",
+				zap.String("group", ctx.Group.Id),
+				zap.String("profile", ctx.Profile.Id),
+			)
+			http.NotFound(w, req)
+			return
 		}
 		tmpl, err := core.TemplateGet(ctx, &pb.TemplateGetRequest{Id: templateID})
 		if err != nil {

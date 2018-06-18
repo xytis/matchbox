@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -20,10 +21,9 @@ func NewProfileDescribeCommand() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			tw := newTabWriter(os.Stdout)
 			defer tw.Flush()
-			// legend
-			fmt.Fprintf(tw, "ID\tNAME\tBINDINGS\tMETADATA\n")
 
 			client := mustClientFromCmd(cmd)
+			flags := cmd.Flags()
 			request := &pb.ProfileGetRequest{
 				Id: args[0],
 			}
@@ -32,9 +32,22 @@ func NewProfileDescribeCommand() *cobra.Command {
 				return
 			}
 			p := resp.Profile
-			fmt.Fprintf(tw, "%s\t%s\t%v\t%v\n", p.Id, p.Name, p.Template, p.Metadata)
+			if ok, _ := flags.GetBool("json"); !ok {
+				fmt.Fprintf(tw, "ID:\t%s\n", p.Id)
+				fmt.Fprintf(tw, "Name:\t%s\n", p.Name)
+				fmt.Fprintf(tw, "Templates:\t%s\n", p.TemplateString())
+				fmt.Fprintf(tw, "Metadata:\n%s\n", p.MetadataPrettyString())
+			} else {
+				j, err := json.Marshal(p)
+				if err != nil {
+					fmt.Fprintf(os.Stdout, `{"success": "false", "error": "%v"}`, err)
+				}
+				fmt.Fprint(os.Stdout, string(j))
+			}
 		},
 	}
+
+	cmd.Flags().Bool("json", false, "Output JSON")
 
 	return cmd
 }

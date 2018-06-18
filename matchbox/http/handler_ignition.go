@@ -30,7 +30,12 @@ func (s *Server) ignitionHandler() http.Handler {
 
 		templateID, present := ctx.Profile.Template["ignition"]
 		if !present {
-			templateID = "default-ignition"
+			s.logger.Info("template binding for ignition is not set",
+				zap.String("group", ctx.Group.Id),
+				zap.String("profile", ctx.Profile.Id),
+			)
+			http.NotFound(w, req)
+			return
 		}
 		tmpl, err := core.TemplateGet(ctx, &pb.TemplateGetRequest{Id: templateID})
 		if err != nil {

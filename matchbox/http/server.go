@@ -76,7 +76,7 @@ func (s *Server) HTTPHandler() http.Handler {
 	// Ignition Config
 	r.Handle("/ignition"+signature, s.ignitionHandler())
 	// Template
-	r.Handle("/template"+signature, s.templateHandler())
+	r.Handle("/template/{selector:(?:[^./]*)}"+signature, s.templateHandler())
 	// Metadata
 	r.Handle("/metadata"+signature, s.metadataHandler())
 

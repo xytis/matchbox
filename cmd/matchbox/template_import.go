@@ -2,6 +2,7 @@ package main
 
 import (
 	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	"context"
@@ -13,8 +14,6 @@ import (
 
 // NewTemplateImportCommand creates groups
 func NewTemplateImportCommand() *cobra.Command {
-	var filename string
-	var templateID string
 	cmd := &cobra.Command{
 		Use:   "import --id ID --file FILENAME",
 		Short: "Import a template",
@@ -22,29 +21,51 @@ func NewTemplateImportCommand() *cobra.Command {
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			client := mustClientFromCmd(cmd)
-			data, err := ioutil.ReadFile(filename)
-			if err != nil {
+			flags := cmd.Flags()
+
+			template := &storagepb.Template{}
+			if id, err := flags.GetString("id"); err == nil {
+				template.Id = id
+			} else {
 				exitWithError(ExitError, err)
 			}
-			template := &storagepb.Template{}
-			template.Id = templateID
-			template.Name = filepath.Base(filename)
-			template.Contents = data
-			if err = template.AssertValid(); err != nil {
+
+			if filename, err := flags.GetString("filename"); err == nil && filename != "-" && filename != "" {
+				if name, _ := flags.GetString("name"); name == "" {
+					template.Name = filepath.Base(filename)
+				} else {
+					template.Name = name
+				}
+				data, err := ioutil.ReadFile(filename)
+				if err != nil {
+					exitWithError(ExitError, err)
+				}
+				template.Contents = data
+			} else if err == nil {
+				data, err := ioutil.ReadAll(os.Stdin)
+				if err != nil {
+					exitWithError(ExitError, err)
+				}
+				template.Contents = data
+			} else {
+				exitWithError(ExitError, err)
+			}
+
+			if err := template.AssertValid(); err != nil {
 				exitWithError(ExitError, err)
 			}
 			req := &pb.TemplatePutRequest{Template: template}
-			_, err = client.Templates.TemplatePut(context.TODO(), req)
+			_, err := client.Templates.TemplatePut(context.TODO(), req)
 			if err != nil {
 				exitWithError(ExitError, err)
 			}
 		},
 	}
 
-	cmd.Flags().StringVarP(&templateID, "id", "i", "", "id to use for template")
-	cmd.Flags().StringVarP(&filename, "filename", "f", "", "filename to template contents")
+	cmd.Flags().StringP("id", "i", "", "id to use for template")
+	cmd.Flags().String("name", "", "name to use for template")
+	cmd.Flags().StringP("filename", "f", "", "filename to template contents")
 	cmd.MarkFlagRequired("id")
-	cmd.MarkFlagRequired("filename")
 
 	return cmd
 }

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"net/http"
 
+	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 
 	pb "github.com/coreos/matchbox/matchbox/server/serverpb"
@@ -14,6 +15,7 @@ import (
 func (s *Server) templateHandler() http.Handler {
 	fn := func(w http.ResponseWriter, req *http.Request) {
 		core := s.core
+		vars := mux.Vars(req)
 
 		ctx, err := s.unwrapContext(req.Context())
 		if err != nil {
@@ -22,9 +24,9 @@ func (s *Server) templateHandler() http.Handler {
 			return
 		}
 
-		selector, present := ctx.Labels["template_id"]
+		selector, present := vars["selector"]
 		if !present {
-			http.Error(w, "Malformed URL, template_id query param must be set", 400)
+			http.Error(w, "Malformed URL, please specify /template/{selector}[.sig|.asc]", 400)
 			return
 		}
 
