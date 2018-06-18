@@ -49,6 +49,9 @@ func NewDaemonConfig() *DaemonConfig {
 
 // Validate checks if given config is valid
 func (c *DaemonConfig) Validate() error {
+	if c.HTTPAddress == "" && c.RPCAddress == "" {
+		return errors.New("server has no purpose, butter not found")
+	}
 	if c.TLS {
 		if c.TLSKeyFile == "" {
 			return errors.New("tls key file not provided")
@@ -170,9 +173,7 @@ func (d *Daemon) start(opts *daemonOptions) error {
 		d.logger.Sugar().Infof("singature: using keyring '%s' (passphrase: %t)", cfg.SignatureKeyring, cfg.SignaturePassphrase != "")
 	}
 
-	if cfg.AssetsDir != "" {
-		webcfg.AssetsPath = cfg.AssetsDir
-	}
+	webcfg.AssetsPath = cfg.AssetsDir
 
 	d.web = web.NewServer(webcfg)
 

@@ -18,6 +18,8 @@ var (
 
 // Server defines the matchbox server interface.
 type Server interface {
+	// SelectMetadata returns built metadata object for given server instance
+	//SelectMetadata(context.Context, *pb.SelectMetadataRequest) (*storagepb.Metadata, error)
 	// SelectGroup returns the Group matching the given labels.
 	SelectGroup(context.Context, *pb.SelectGroupRequest) (*storagepb.Group, error)
 	// SelectProfile returns the Profile matching the given labels.

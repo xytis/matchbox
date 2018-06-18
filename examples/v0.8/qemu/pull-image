@@ -1,0 +1,3 @@
+#/bin/sh
+
+wget http://boot.ipxe.org/ipxe.iso

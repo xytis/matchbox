@@ -51,13 +51,20 @@ func (s *Server) HTTPHandler() http.Handler {
 	r.Use(func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, req *http.Request) {
 			vars := mux.Vars(req)
-			if s.signer != nil && vars["signature"] == ".sig" {
-				h := sign.SignatureHandler(s.signer, next)
-				h.ServeHTTP(w, req)
-			} else if s.armoredSigner != nil && vars["signature"] == ".asc" {
-				h := sign.SignatureHandler(s.armoredSigner, next)
-				h.ServeHTTP(w, req)
-			} else {
+			switch vars["signature"] {
+			case ".sig":
+				if s.signer != nil {
+					h := sign.SignatureHandler(s.armoredSigner, next)
+					h.ServeHTTP(w, req)
+				} else {
+					http.NotFound(w, req)
+				}
+			case ".asc":
+				if s.armoredSigner != nil {
+				} else {
+					http.NotFound(w, req)
+				}
+			default:
 				next.ServeHTTP(w, req)
 			}
 		}
@@ -85,4 +92,11 @@ func (s *Server) HTTPHandler() http.Handler {
 	}
 
 	return s.logging(r)
+}
+
+// globalMetadata extracts metadata from storage
+func (s *Server) globalMetadata() (map[string]interface{}, error) {
+	metadata := make(map[string]interface{})
+	//TODO: Pull global metadata from store
+	return metadata, nil
 }

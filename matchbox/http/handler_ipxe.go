@@ -11,7 +11,7 @@ import (
 )
 
 const ipxeBootstrap = `#!ipxe
-chain ipxe?uuid=${uuid}&mac=${mac:hexhyp}&domain=${domain}&hostname=${hostname}&serial=${serial}
+chain ipxe?uuid=${uuid}&mac=${mac:hexhyp}&domain=${domain}&hostname=${hostname}&serial=${serial}&asset=${asset:uristring}
 `
 
 // ipxeInspect returns a handler that responds with the iPXE script to gather

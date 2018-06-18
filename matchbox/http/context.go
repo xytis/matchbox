@@ -93,8 +93,14 @@ func requestIDFromContext(ctx context.Context) (string, error) {
 	return rID, nil
 }
 
-func mergeMetadata(ctx context.Context) (map[string]interface{}, error) {
+func (s *Server) mergeMetadata(ctx context.Context) (map[string]interface{}, error) {
 	metadata := make(map[string]interface{})
+	if gm, err := s.globalMetadata(); err == nil {
+		metadata["matchbox"] = gm
+	} else {
+		return nil, err
+	}
+
 	if group, err := groupFromContext(ctx); err == nil {
 		if rg, err := group.ToRichGroup(); err == nil {
 			metadata = merge.Merge(metadata, rg.Metadata).(map[string]interface{})
@@ -148,7 +154,7 @@ func (s *Server) unwrapContext(ctx context.Context) (unwrappedContext, error) {
 	result := unwrappedContext{Context: ctx}
 	result.RequestID, err = requestIDFromContext(ctx)
 	if err != nil {
-		return result, err
+		result.RequestID = "undefined"
 	}
 
 	result.Labels, err = labelsFromContext(ctx)
@@ -166,7 +172,7 @@ func (s *Server) unwrapContext(ctx context.Context) (unwrappedContext, error) {
 		return result, err
 	}
 
-	result.Metadata, err = mergeMetadata(ctx)
+	result.Metadata, err = s.mergeMetadata(ctx)
 	if err != nil {
 		s.logger.Warn("metadata not merged",
 			zap.Error(err),
