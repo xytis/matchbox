@@ -16,17 +16,19 @@ import (
 
 func TestIgnitionHandler_V2JSON(t *testing.T) {
 	content := `{"ignition":{"version":"2.1.0","config":{}},"storage":{},"systemd":{"units":[{"name":"etcd2.service","enable":true}]},"networkd":{},"passwd":{}}`
+	template := fake.IgnitionTemplate()
+	template.Contents = []byte(content)
 	profile := &storagepb.Profile{
-		Id:       fake.Group.Profile,
-		Template: map[string]string{"ignition": fake.Template.Id},
+		Id:       fake.Group().Profile,
+		Template: map[string]string{"ignition": template.Id},
 	}
 	store := fake.NewFixedStore()
-	store.Templates[fake.Template.Id] = &storagepb.Template{Id: fake.Template.Id, Contents: []byte(content)}
+	store.TemplatePut(template)
 
 	core := server.NewServer(store)
 	srv := NewServer(&Config{Logger: zap.NewNop(), Core: core})
 	h := srv.ignitionHandler()
-	ctx := createFakeContext(context.Background(), map[string]string{}, profile, fake.Group)
+	ctx := createFakeContext(context.Background(), fake.Labels(), fake.Group(), profile)
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/", nil)
 	h.ServeHTTP(w, req.WithContext(ctx))
@@ -73,48 +75,3 @@ systemd:
 	assert.Equal(t, expectedIgnitionV2, w.Body.String())
 }
 */
-
-func TestIgnitionHandler_MissingCtxProfile(t *testing.T) {
-	core := server.NewServer(fake.NewFixedStore())
-	srv := NewServer(&Config{Logger: zap.NewNop(), Core: core})
-	h := srv.ignitionHandler()
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/", nil)
-	h.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusNotFound, w.Code)
-}
-
-func TestIgnitionHandler_MissingIgnitionConfig(t *testing.T) {
-	core := server.NewServer(fake.NewFixedStore())
-	srv := NewServer(&Config{Logger: zap.NewNop(), Core: core})
-	h := srv.ignitionHandler()
-	ctx := withProfile(context.Background(), fake.Profile)
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/", nil)
-	h.ServeHTTP(w, req.WithContext(ctx))
-	assert.Equal(t, http.StatusNotFound, w.Code)
-}
-
-func TestIgnitionHandler_MissingTemplateMetadata(t *testing.T) {
-	content := `
-ignition_version: 1
-systemd:
-  units:
-    - name: {{.missing_key}}
-      enable: true
-`
-	store := fake.NewFixedStore()
-	store.Templates[fake.Template.Id] = &storagepb.Template{Id: fake.Template.Id, Contents: []byte(content)}
-
-	core := server.NewServer(store)
-	srv := NewServer(&Config{Logger: zap.NewNop(), Core: core})
-	h := srv.ignitionHandler()
-	ctx := withGroup(context.Background(), fake.Group)
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/", nil)
-	h.ServeHTTP(w, req.WithContext(ctx))
-	// assert that:
-	// - Ignition template rendering errors because "missing_key" is not
-	// present in the template variables
-	assert.Equal(t, http.StatusNotFound, w.Code)
-}

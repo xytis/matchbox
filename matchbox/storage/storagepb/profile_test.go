@@ -46,6 +46,17 @@ func TestProfileValidate(t *testing.T) {
 	}
 }
 
+func TestProfileTemplateString(t *testing.T) {
+	profile := Profile{
+		Template: map[string]string{
+			"a": "b",
+			"c": "d",
+		},
+	}
+	expected := "a=b,c=d"
+	assert.Equal(t, expected, profile.TemplateString())
+}
+
 func TestProfileCopy(t *testing.T) {
 	profile := testProfile
 	clone := profile.Copy()

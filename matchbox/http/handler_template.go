@@ -2,6 +2,7 @@ package http
 
 import (
 	"bytes"
+	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -19,8 +20,8 @@ func (s *Server) templateHandler() http.Handler {
 
 		ctx, err := s.unwrapContext(req.Context())
 		if err != nil {
-			s.logger.Info("context not valid", zap.Error(err))
-			http.NotFound(w, req)
+			s.logger.Debug("context not valid", zap.Error(err))
+			http.Error(w, fmt.Sprintf(`404 context build error: %v`, err), http.StatusNotFound)
 			return
 		}
 
@@ -32,28 +33,29 @@ func (s *Server) templateHandler() http.Handler {
 
 		templateID, present := ctx.Profile.Template[selector]
 		if !present {
-			s.logger.Info("profile does not contain requested template",
+			s.logger.Debug("template binding for selector is not set",
 				zap.String("profile", ctx.Profile.Id),
-				zap.String("template", selector),
+				zap.String("selector", selector),
 			)
-			http.NotFound(w, req)
+			http.Error(w, fmt.Sprintf(`404 template binding for "%s" is not set in profile "%s"`, selector, ctx.Profile.Id), http.StatusNotFound)
 			return
 		}
 
 		tmpl, err := core.TemplateGet(ctx, &pb.TemplateGetRequest{Id: templateID})
 		if err != nil {
-			s.logger.Info("template not found",
+			s.logger.Debug("template not found",
 				zap.String("template", templateID),
+				zap.String("group", ctx.Group.Id),
 				zap.String("profile", ctx.Profile.Id),
 			)
-			http.NotFound(w, req)
+			http.Error(w, fmt.Sprintf(`404 template "%s" not found`, templateID), http.StatusNotFound)
 			return
 		}
 
 		var buf bytes.Buffer
 		if err = Render(&buf, tmpl.Id, string(tmpl.Contents), ctx.Metadata); err != nil {
-			s.logger.Error("error rendering template", zap.Error(err))
-			http.NotFound(w, req)
+			s.logger.Debug("template rendering failure", zap.Error(err))
+			http.Error(w, fmt.Sprintf("404 template rendering error: %v", err), http.StatusNotFound)
 			return
 		}
 		if _, err := buf.WriteTo(w); err != nil {

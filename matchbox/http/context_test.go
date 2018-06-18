@@ -2,8 +2,10 @@ package http
 
 import (
 	"context"
+	"net/http"
 	"testing"
 
+	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/coreos/matchbox/matchbox/storage/storagepb"
@@ -41,9 +43,31 @@ func TestContextGroup_Error(t *testing.T) {
 	}
 }
 
-func createFakeContext(ctx context.Context, labels map[string]string, profile *storagepb.Profile, group *storagepb.Group) context.Context {
-	ctx = withLabels(ctx, labels)
-	ctx = withProfile(ctx, profile)
-	ctx = withGroup(ctx, group)
+func createFakeContext(
+	ctx context.Context,
+	labels map[string]string,
+	group *storagepb.Group,
+	profile *storagepb.Profile,
+) context.Context {
+	if labels != nil {
+		ctx = withLabels(ctx, labels)
+	}
+	if profile != nil {
+		ctx = withProfile(ctx, profile)
+	}
+	if group != nil {
+		ctx = withGroup(ctx, group)
+	}
 	return ctx
+}
+
+func wrapFakeContext(ctx context.Context, vars map[string]string, next http.Handler) http.Handler {
+	fn := func(w http.ResponseWriter, req *http.Request) {
+		req = req.WithContext(ctx)
+		if vars != nil {
+			req = mux.SetURLVars(req, vars)
+		}
+		next.ServeHTTP(w, req)
+	}
+	return http.HandlerFunc(fn)
 }

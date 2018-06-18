@@ -119,7 +119,7 @@ func TestGroupValidate(t *testing.T) {
 	}
 }
 
-func TestSelectorString(t *testing.T) {
+func TestGroupSelectorString(t *testing.T) {
 	group := Group{
 		Selector: map[string]string{
 			"a": "b",
@@ -127,7 +127,7 @@ func TestSelectorString(t *testing.T) {
 		},
 	}
 	expected := "a=b,c=d"
-	assert.Equal(t, expected, group.selectorString())
+	assert.Equal(t, expected, group.SelectorString())
 }
 
 func TestGroupSort(t *testing.T) {

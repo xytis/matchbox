@@ -7,12 +7,16 @@ import (
 
 	"context"
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
 
-	"github.com/coreos/matchbox/matchbox/server"
 	"github.com/coreos/matchbox/matchbox/storage/storagepb"
 	fake "github.com/coreos/matchbox/matchbox/storage/testfakes"
 )
+
+func prepareProfileIPXE() *storagepb.Profile {
+	profile := fake.Profile()
+	profile.Template["ipxe"] = fake.IPXETemplate().Id
+	return profile
+}
 
 func TestIPXEInspect(t *testing.T) {
 	h := ipxeInspect()
@@ -24,10 +28,11 @@ func TestIPXEInspect(t *testing.T) {
 }
 
 func TestIPXEHandler(t *testing.T) {
-	core := server.NewServer(fake.NewFixedStore())
-	srv := NewServer(&Config{Logger: zap.NewNop(), Core: core})
+	srv := prepareServer()
 	h := srv.ipxeHandler()
-	ctx := createFakeContext(context.Background(), map[string]string{}, fake.Profile, fake.Group)
+
+	ctx := createFakeContext(context.Background(), fake.Labels(), fake.Group(), prepareProfileIPXE())
+
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/", nil)
 	h.ServeHTTP(w, req.WithContext(ctx))
@@ -41,38 +46,4 @@ boot
 `
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, expectedScript, w.Body.String())
-}
-
-func TestIPXEHandler_MissingCtxProfile(t *testing.T) {
-	core := server.NewServer(fake.NewFixedStore())
-	srv := NewServer(&Config{Logger: zap.NewNop(), Core: core})
-	h := srv.ipxeHandler()
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/", nil)
-	h.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusNotFound, w.Code)
-}
-
-func TestIPXEHandler_RenderTemplateError(t *testing.T) {
-	core := server.NewServer(fake.NewFixedStore())
-	srv := NewServer(&Config{Logger: zap.NewNop(), Core: core})
-	h := srv.ipxeHandler()
-	//Profile with missing metadata produces template render error
-	ctx := createFakeContext(context.Background(), map[string]string{}, &storagepb.Profile{Id: fake.Profile.Id}, fake.Group)
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/", nil)
-	h.ServeHTTP(w, req.WithContext(ctx))
-	assert.Equal(t, http.StatusNotFound, w.Code)
-}
-
-func TestIPXEHandler_WriteError(t *testing.T) {
-	core := server.NewServer(fake.NewFixedStore())
-	srv := NewServer(&Config{Logger: zap.NewNop(), Core: core})
-	h := srv.ipxeHandler()
-	ctx := createFakeContext(context.Background(), map[string]string{}, fake.Profile, fake.Group)
-	w := NewUnwriteableResponseWriter()
-	req, _ := http.NewRequest("GET", "/", nil)
-	h.ServeHTTP(w, req.WithContext(ctx))
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
-	assert.Empty(t, w.Body.String())
 }

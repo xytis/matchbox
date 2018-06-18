@@ -58,7 +58,6 @@ type server struct {
 
 // NewServer returns a new Server.
 func NewServer(store storage.Store) Server {
-	storage.AssertDefaultTemplates(store)
 	return &server{
 		store: store,
 	}

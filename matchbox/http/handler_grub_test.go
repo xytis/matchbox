@@ -7,18 +7,22 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
 
-	"github.com/coreos/matchbox/matchbox/server"
+	"github.com/coreos/matchbox/matchbox/storage/storagepb"
 	fake "github.com/coreos/matchbox/matchbox/storage/testfakes"
 )
 
+func prepareProfileGrub() *storagepb.Profile {
+	profile := fake.Profile()
+	profile.Template["grub"] = fake.GrubTemplate().Id
+	return profile
+}
+
 func TestGrubHandler(t *testing.T) {
-	core := server.NewServer(fake.NewFixedStore())
-	srv := NewServer(&Config{Logger: zap.NewNop(), Core: core})
+	srv := prepareServer()
 	h := srv.grubHandler()
 
-	ctx := createFakeContext(context.Background(), map[string]string{}, fake.Profile, fake.Group)
+	ctx := createFakeContext(context.Background(), fake.Labels(), fake.Group(), prepareProfileGrub())
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/", nil)
@@ -33,14 +37,7 @@ menuentry "CoreOS (EFI)" {
   linuxefi "/image/kernel" a=b c
   echo "Loading initrd"
   initrdefi  "/image/initrd_a" "/image/initrd_b"
-}
-menuentry "CoreOS (BIOS)" {
-  echo "Loading kernel"
-  linux "/image/kernel" a=b c
-  echo "Loading initrd"
-  initrd  "/image/initrd_a" "/image/initrd_b"
-}
-`
+}`
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, expectedScript, w.Body.String())
 }

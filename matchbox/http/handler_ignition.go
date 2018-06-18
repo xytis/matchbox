@@ -2,8 +2,8 @@ package http
 
 import (
 	"bytes"
+	"fmt"
 	"net/http"
-	"strings"
 
 	"go.uber.org/zap"
 	//ct "github.com/coreos/container-linux-config-transpiler/config"
@@ -23,40 +23,42 @@ func (s *Server) ignitionHandler() http.Handler {
 
 		ctx, err := s.unwrapContext(req.Context())
 		if err != nil {
-			s.logger.Info("context not valid", zap.Error(err))
-			http.NotFound(w, req)
+			s.logger.Debug("context not valid", zap.Error(err))
+			http.Error(w, fmt.Sprintf(`404 context build error: %v`, err), http.StatusNotFound)
 			return
 		}
 
 		templateID, present := ctx.Profile.Template["ignition"]
 		if !present {
-			s.logger.Info("template binding for ignition is not set",
+			s.logger.Debug("template binding for ignition is not set",
 				zap.String("group", ctx.Group.Id),
 				zap.String("profile", ctx.Profile.Id),
 			)
-			http.NotFound(w, req)
+			http.Error(w, fmt.Sprintf(`404 template binding for "grub" is not set in profile "%s"`, ctx.Profile.Id), http.StatusNotFound)
 			return
 		}
 		tmpl, err := core.TemplateGet(ctx, &pb.TemplateGetRequest{Id: templateID})
 		if err != nil {
-			s.logger.Info("template not found",
+			s.logger.Debug("template not found",
 				zap.String("template", templateID),
 				zap.String("group", ctx.Group.Id),
 				zap.String("profile", ctx.Profile.Id),
 			)
-			http.NotFound(w, req)
+			http.Error(w, fmt.Sprintf(`404 template "%s" not found`, templateID), http.StatusNotFound)
 			return
 		}
 
 		var buf bytes.Buffer
 		if err = Render(&buf, tmpl.Id, string(tmpl.Contents), ctx.Metadata); err != nil {
-			s.logger.Error("error rendering template", zap.Error(err))
-			http.NotFound(w, req)
+			s.logger.Debug("template rendering failure", zap.Error(err))
+			http.Error(w, fmt.Sprintf("404 template rendering error: %v", err), http.StatusNotFound)
 			return
 		}
 		_, report, err := ignition.Parse(buf.Bytes())
 		if err != nil {
-			s.logger.Warn("ignition parsing failed", zap.Error(err), zap.String("report", report.String()))
+			s.logger.Debug("ignition source", zap.String("template", string(tmpl.Contents)))
+			s.logger.Debug("ignition parsing failed", zap.Error(err), zap.String("report", report.String()))
+			http.Error(w, fmt.Sprintf("404 ignition parsing failed: %v\nreport: %s", err, report.String()), http.StatusNotFound)
 		}
 		w.Header().Set(contentType, jsonContentType)
 		if _, err := buf.WriteTo(w); err != nil {
@@ -105,9 +107,4 @@ func (s *Server) ignitionHandler() http.Handler {
 		*/
 	}
 	return http.HandlerFunc(fn)
-}
-
-// isIgnition returns true if the file should be treated as plain Ignition.
-func isIgnition(filename string) bool {
-	return strings.HasSuffix(filename, ".ign") || strings.HasSuffix(filename, ".ignition")
 }

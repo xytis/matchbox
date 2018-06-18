@@ -24,14 +24,14 @@ func TestEtcdClientCreation(t *testing.T) {
 	}, zap.NewNop())
 	assert.Nil(t, err)
 
-	err = store.TemplatePut(fake.Template)
+	err = store.TemplatePut(fake.CustomTemplate())
 	assert.Nil(t, err)
 
-	template, err := store.TemplateGet(fake.Template.Id)
-	assert.Equal(t, fake.Template, template)
-	assert.Equal(t, fake.Template.Id, template.Id)
-	assert.Equal(t, fake.Template.Name, template.Name)
-	assert.Equal(t, fake.Template.Contents, template.Contents)
+	template, err := store.TemplateGet(fake.CustomTemplate().Id)
+	assert.Equal(t, fake.CustomTemplate(), template)
+	assert.Equal(t, fake.CustomTemplate().Id, template.Id)
+	assert.Equal(t, fake.CustomTemplate().Name, template.Name)
+	assert.Equal(t, fake.CustomTemplate().Contents, template.Contents)
 }
 
 func TestEtcdStoreGroupCRUD(t *testing.T) {
@@ -50,28 +50,28 @@ func TestEtcdStoreGroupCRUD(t *testing.T) {
 	// - Group list can be retrieved
 	// - Group can be deleted by id
 	// - Non existing group query returns error
-	err = store.GroupPut(fake.Group)
+	err = store.GroupPut(fake.Group())
 	assert.Nil(t, err)
 
-	err = store.GroupPut(fake.GroupNoMetadata)
+	err = store.GroupPut(fake.GroupNoMetadata())
 	assert.Nil(t, err)
 
-	group, err := store.GroupGet(fake.Group.Id)
+	group, err := store.GroupGet(fake.Group().Id)
 	assert.Nil(t, err)
-	assert.Equal(t, fake.Group, group)
+	assert.Equal(t, fake.Group(), group)
 
 	groups, err := store.GroupList()
 	assert.Nil(t, err)
 	if assert.Equal(t, 2, len(groups)) {
-		assert.Contains(t, groups, fake.Group)
-		assert.Contains(t, groups, fake.GroupNoMetadata)
+		assert.Contains(t, groups, fake.Group())
+		assert.Contains(t, groups, fake.GroupNoMetadata())
 		assert.NotContains(t, groups, &storagepb.Group{})
 	}
 
-	err = store.GroupDelete(fake.Group.Id)
+	err = store.GroupDelete(fake.Group().Id)
 	assert.Nil(t, err)
 
-	_, err = store.GroupGet(fake.Group.Id)
+	_, err = store.GroupGet(fake.Group().Id)
 	if assert.Error(t, err) {
 		assert.Equal(t, err, ErrGroupNotFound)
 	}
@@ -93,28 +93,28 @@ func TestEtcdStoreProfileCRUD(t *testing.T) {
 	// - Group list can be retrieved
 	// - Group can be deleted by id
 	// - Non existing group query returns error
-	err = store.ProfilePut(fake.Profile)
+	err = store.ProfilePut(fake.Profile())
 	assert.Nil(t, err)
 
-	err = store.ProfilePut(fake.ProfileNoConfig)
+	err = store.ProfilePut(fake.ProfileNoMetadata())
 	assert.Nil(t, err)
 
-	profile, err := store.ProfileGet(fake.Profile.Id)
+	profile, err := store.ProfileGet(fake.Profile().Id)
 	assert.Nil(t, err)
-	assert.Equal(t, fake.Profile, profile)
+	assert.Equal(t, fake.Profile(), profile)
 
 	profiles, err := store.ProfileList()
 	assert.Nil(t, err)
 	if assert.Equal(t, 2, len(profiles)) {
-		assert.Contains(t, profiles, fake.Profile)
-		assert.Contains(t, profiles, fake.ProfileNoConfig)
+		assert.Contains(t, profiles, fake.Profile())
+		assert.Contains(t, profiles, fake.ProfileNoMetadata())
 		assert.NotContains(t, profiles, &storagepb.Group{})
 	}
 
-	err = store.ProfileDelete(fake.Profile.Id)
+	err = store.ProfileDelete(fake.Profile().Id)
 	assert.Nil(t, err)
 
-	_, err = store.ProfileGet(fake.Profile.Id)
+	_, err = store.ProfileGet(fake.Profile().Id)
 	if assert.Error(t, err) {
 		assert.Equal(t, err, ErrProfileNotFound)
 	}
@@ -133,16 +133,16 @@ func TestEtcdStoreTemplateCRUD(t *testing.T) {
 	// - Ignition template creation was successful
 	// - Ignition template can be retrieved by name
 	// - Ignition template can be deleted by name
-	err = store.TemplatePut(fake.Template)
+	err = store.TemplatePut(fake.CustomTemplate())
 	assert.Nil(t, err)
 
-	template, err := store.TemplateGet(fake.Template.Id)
+	template, err := store.TemplateGet(fake.CustomTemplate().Id)
 	assert.Nil(t, err)
-	assert.Equal(t, fake.Template.Contents, template.Contents)
+	assert.Equal(t, fake.CustomTemplate().Contents, template.Contents)
 
-	err = store.TemplateDelete(fake.Template.Id)
+	err = store.TemplateDelete(fake.CustomTemplate().Id)
 	assert.Nil(t, err)
-	_, err = store.TemplateGet(fake.Template.Id)
+	_, err = store.TemplateGet(fake.CustomTemplate().Id)
 	if assert.Error(t, err) {
 		assert.Equal(t, err, ErrTemplateNotFound)
 	}

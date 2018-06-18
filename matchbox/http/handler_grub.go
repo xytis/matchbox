@@ -2,6 +2,7 @@ package http
 
 import (
 	"bytes"
+	"fmt"
 	"net/http"
 
 	pb "github.com/coreos/matchbox/matchbox/server/serverpb"
@@ -17,35 +18,35 @@ func (s *Server) grubHandler() http.Handler {
 
 		ctx, err := s.unwrapContext(req.Context())
 		if err != nil {
-			s.logger.Info("context not valid", zap.Error(err))
-			http.NotFound(w, req)
+			s.logger.Debug("context not valid", zap.Error(err))
+			http.Error(w, fmt.Sprintf(`404 context build error: %v`, err), http.StatusNotFound)
 			return
 		}
 
 		templateID, present := ctx.Profile.Template["grub"]
 		if !present {
-			s.logger.Info("template binding for grup is not set",
+			s.logger.Debug("template binding for grub is not set",
 				zap.String("group", ctx.Group.Id),
 				zap.String("profile", ctx.Profile.Id),
 			)
-			http.NotFound(w, req)
+			http.Error(w, fmt.Sprintf(`404 template binding for "grub" is not set in profile "%s"`, ctx.Profile.Id), http.StatusNotFound)
 			return
 		}
 		tmpl, err := core.TemplateGet(ctx, &pb.TemplateGetRequest{Id: templateID})
 		if err != nil {
-			s.logger.Info("template not found",
+			s.logger.Debug("template not found",
 				zap.String("template", templateID),
 				zap.String("group", ctx.Group.Id),
 				zap.String("profile", ctx.Profile.Id),
 			)
-			http.NotFound(w, req)
+			http.Error(w, fmt.Sprintf(`404 template "%s" not found`, templateID), http.StatusNotFound)
 			return
 		}
 
 		var buf bytes.Buffer
 		if err = Render(&buf, tmpl.Id, string(tmpl.Contents), ctx.Metadata); err != nil {
-			s.logger.Error("error rendering template", zap.Error(err))
-			http.NotFound(w, req)
+			s.logger.Debug("template rendering failure", zap.Error(err))
+			http.Error(w, fmt.Sprintf("404 template rendering error: %v", err), http.StatusNotFound)
 			return
 		}
 		if _, err := buf.WriteTo(w); err != nil {

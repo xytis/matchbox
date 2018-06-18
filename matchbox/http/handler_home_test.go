@@ -15,8 +15,8 @@ import (
 
 func TestSelectContext(t *testing.T) {
 	store := fake.NewFixedStore()
-	store.Groups[fake.Group.Id] = fake.Group
-	store.Profiles[fake.Profile.Id] = fake.Profile
+	store.GroupPut(fake.Group())
+	store.ProfilePut(fake.Profile())
 
 	c := server.NewServer(store)
 	srv := NewServer(&Config{Core: c, Logger: zap.NewNop()})
@@ -29,11 +29,11 @@ func TestSelectContext(t *testing.T) {
 
 		group, err := groupFromContext(ctx)
 		assert.Nil(t, err)
-		assert.Equal(t, fake.Group, group)
+		assert.Equal(t, fake.Group(), group)
 
 		profile, err := profileFromContext(ctx)
 		assert.Nil(t, err)
-		assert.Equal(t, fake.Profile, profile)
+		assert.Equal(t, fake.Profile(), profile)
 
 		fmt.Fprintf(w, "next handler called")
 	}

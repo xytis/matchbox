@@ -1,6 +1,7 @@
 package http
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -44,20 +45,25 @@ func TestRenderJSON_WriteError(t *testing.T) {
 	srv := NewServer(&Config{Logger: zap.NewNop()})
 	w := NewUnwriteableResponseWriter()
 	srv.renderJSON(w, map[string]string{"a": "b"})
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
-	assert.Empty(t, w.Body.String())
+	if !assert.Equal(t, http.StatusInternalServerError, w.Code) {
+		assert.Empty(t, w.Body.String())
+	}
 }
 
 // UnwritableResponseWriter is a http.ResponseWriter for testing Write
 // failures.
 type UnwriteableResponseWriter struct {
 	*httptest.ResponseRecorder
+	Body *bytes.Buffer
 }
 
 func NewUnwriteableResponseWriter() *UnwriteableResponseWriter {
-	return &UnwriteableResponseWriter{httptest.NewRecorder()}
+	return &UnwriteableResponseWriter{httptest.NewRecorder(), new(bytes.Buffer)}
 }
 
-func (w *UnwriteableResponseWriter) Write([]byte) (int, error) {
+func (w *UnwriteableResponseWriter) Write(buf []byte) (int, error) {
+	// Preserve what was written for quicker fixing
+	// Note that actual Header is not modified, contrary to ResponseRecorder
+	w.Body.Write(buf)
 	return 0, fmt.Errorf("Unwriteable ResponseWriter")
 }
