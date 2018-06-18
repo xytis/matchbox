@@ -2,7 +2,6 @@ package http
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/coreos/matchbox/matchbox/server"
 	"github.com/coreos/matchbox/matchbox/sign"
@@ -86,24 +85,4 @@ func (s *Server) HTTPHandler() http.Handler {
 	}
 
 	return s.logging(r)
-}
-
-type loggingResponseWriter struct {
-	http.ResponseWriter
-	status int
-	size   int
-}
-
-type loggingRequestHandler struct {
-}
-
-// logging logs HTTP requests.
-func (s *Server) logging(next http.Handler) http.Handler {
-	fn := func(w http.ResponseWriter, req *http.Request) {
-		startTime := time.Now()
-		next.ServeHTTP(w, req)
-		duration := time.Since(startTime)
-		s.logger.Info("HTTP", zap.String("method", req.Method), zap.String("url", req.URL.String()), zap.Duration("duration", duration))
-	}
-	return http.HandlerFunc(fn)
 }

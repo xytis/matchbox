@@ -16,9 +16,10 @@ const plainContentType = "plain/text"
 func (s *Server) metadataHandler() http.Handler {
 	fn := func(w http.ResponseWriter, req *http.Request) {
 		ctx, err := s.unwrapContext(req.Context())
+    logger := s.logger.With(zap.String("request-id", ctx.RequestID))
 		if err != nil {
-			s.logger.Info("context not valid", zap.Error(err))
-			http.NotFound(w, req)
+			logger.Debug("context not valid", zap.Error(err))
+			http.Error(w, fmt.Sprintf(`404 context build error: %v`, err), http.StatusNotFound)
 			return
 		}
 

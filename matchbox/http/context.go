@@ -20,20 +20,23 @@ const (
 	profileKey key = iota
 	groupKey
 	labelsKey
+	requestIDKey
 )
 
 var (
-	errNoProfileFromContext = errors.New("api: Context missing a Profile")
-	errNoGroupFromContext   = errors.New("api: Context missing a Group")
-	errNoLabelsFromContext  = errors.New("api: Context missing parsed Labels")
+	errNoProfileFromContext   = errors.New("api: Context missing a Profile")
+	errNoGroupFromContext     = errors.New("api: Context missing a Group")
+	errNoLabelsFromContext    = errors.New("api: Context missing parsed Labels")
+	errNoRequestIDFromContext = errors.New("api: Context missing Request ID")
 )
 
 type unwrappedContext struct {
 	context.Context
-	Labels   map[string]string
-	Group    *storagepb.Group
-	Profile  *storagepb.Profile
-	Metadata map[string]interface{}
+	Labels    map[string]string
+	Group     *storagepb.Group
+	Profile   *storagepb.Profile
+	Metadata  map[string]interface{}
+	RequestID string
 }
 
 // withProfile returns a copy of ctx that stores the given Profile.
@@ -74,6 +77,20 @@ func labelsFromContext(ctx context.Context) (map[string]string, error) {
 		return nil, errNoLabelsFromContext
 	}
 	return labels, nil
+}
+
+// withRequestId returns a copy of ctx that stores current request id
+func withRequestID(ctx context.Context, rID string) context.Context {
+	return context.WithValue(ctx, requestIDKey, rID)
+}
+
+// requestIDFromContext returns the RequestId from the ctx.
+func requestIDFromContext(ctx context.Context) (string, error) {
+	rID, ok := ctx.Value(requestIDKey).(string)
+	if !ok {
+		return "", errNoRequestIDFromContext
+	}
+	return rID, nil
 }
 
 func mergeMetadata(ctx context.Context) (map[string]interface{}, error) {
@@ -129,30 +146,23 @@ func (s *Server) wrapContext(next http.Handler) http.Handler {
 func (s *Server) unwrapContext(ctx context.Context) (unwrappedContext, error) {
 	var err error
 	result := unwrappedContext{Context: ctx}
+	result.RequestID, err = requestIDFromContext(ctx)
+	if err != nil {
+		return result, err
+	}
+
 	result.Labels, err = labelsFromContext(ctx)
 	if err != nil {
-		s.logger.Warn("labels not present in context",
-			zap.Error(err),
-		)
 		return result, err
 	}
 
 	result.Group, err = groupFromContext(ctx)
 	if err != nil {
-		s.logger.Info("group not matched",
-			zap.Error(err),
-			zap.String("labels", fmt.Sprintf("%v", result.Labels)),
-		)
 		return result, err
 	}
 
 	result.Profile, err = profileFromContext(ctx)
 	if err != nil {
-		s.logger.Info("profile not matched",
-			zap.Error(err),
-			zap.String("labels", fmt.Sprintf("%v", result.Labels)),
-			zap.String("group", result.Group.Id),
-		)
 		return result, err
 	}
 

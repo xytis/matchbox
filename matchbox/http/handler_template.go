@@ -19,8 +19,9 @@ func (s *Server) templateHandler() http.Handler {
 		vars := mux.Vars(req)
 
 		ctx, err := s.unwrapContext(req.Context())
+		logger := s.logger.With(zap.String("request-id", ctx.RequestID))
 		if err != nil {
-			s.logger.Debug("context not valid", zap.Error(err))
+			logger.Debug("context not valid", zap.Error(err))
 			http.Error(w, fmt.Sprintf(`404 context build error: %v`, err), http.StatusNotFound)
 			return
 		}
@@ -33,7 +34,7 @@ func (s *Server) templateHandler() http.Handler {
 
 		templateID, present := ctx.Profile.Template[selector]
 		if !present {
-			s.logger.Debug("template binding for selector is not set",
+			logger.Debug("template binding for selector is not set",
 				zap.String("profile", ctx.Profile.Id),
 				zap.String("selector", selector),
 			)
@@ -43,7 +44,7 @@ func (s *Server) templateHandler() http.Handler {
 
 		tmpl, err := core.TemplateGet(ctx, &pb.TemplateGetRequest{Id: templateID})
 		if err != nil {
-			s.logger.Debug("template not found",
+			logger.Debug("template not found",
 				zap.String("template", templateID),
 				zap.String("group", ctx.Group.Id),
 				zap.String("profile", ctx.Profile.Id),
@@ -54,12 +55,12 @@ func (s *Server) templateHandler() http.Handler {
 
 		var buf bytes.Buffer
 		if err = Render(&buf, tmpl.Id, string(tmpl.Contents), ctx.Metadata); err != nil {
-			s.logger.Debug("template rendering failure", zap.Error(err))
+			logger.Debug("template rendering failure", zap.Error(err))
 			http.Error(w, fmt.Sprintf("404 template rendering error: %v", err), http.StatusNotFound)
 			return
 		}
 		if _, err := buf.WriteTo(w); err != nil {
-			s.logger.Error("error writing to response", zap.Error(err))
+			logger.Error("error writing to response", zap.Error(err))
 			w.WriteHeader(http.StatusInternalServerError)
 		}
 	}
